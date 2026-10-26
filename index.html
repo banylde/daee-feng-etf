@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>风部 · 八友御风 ETF轮动看板</title>
+<meta name="theme-color" content="#0f1115"><link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg"><link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="八友御风">
+<style>
+:root{--bg:#0f1115;--card:#171a21;--line:#262a33;--fg:#e6e8eb;--mute:#8a919c;--up:#f0525c;--dn:#2fbf71;--hl:#f5c451}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
+h1{font-size:18px;margin:4px 0}.mute{color:var(--mute);font-size:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0}
+.chips span{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:12px;background:#222733;font-size:12px}.in{color:var(--up)}.out{color:var(--dn)}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;min-width:760px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}th{position:sticky;top:0;background:#1c2029;cursor:pointer;user-select:none;font-weight:500;color:var(--mute)}
+th.s{color:var(--fg)}td:nth-child(2),th:nth-child(2){text-align:left;position:sticky;left:0;background:var(--card)}tr.top td{background:#2a2414}tr.top td:nth-child(2){background:#2a2414;color:var(--hl)}
+.p{color:var(--up)}.n{color:var(--dn)}.tag{font-size:11px;padding:0 4px;border-radius:4px;margin-left:4px}.tag.in{border:1px solid var(--up)}.tag.out{border:1px solid var(--dn)}
+footer{margin:16px 0;text-align:center;color:var(--mute);font-size:12px}
+</style></head><body>
+<h1>风部 · 八友御风 ETF轮动看板</h1>
+<div class="mute" id="meta">加载中…</div>
+<div class="card"><b>当期八友</b><div class="chips" id="top"></div>
+<div class="mute" id="chg"></div></div>
+<div class="wrap"><table id="t"><thead><tr></tr></thead><tbody></tbody></table></div>
+<div class="card mute" id="rule"></div>
+<footer>仅为个人研究工具，不构成投资建议</footer>
+<script>
+const COLS=[["rank","排名"],["name","名称"],["code","代码"],["score","得分"],["r5","5日%"],["r20","20日%"],["r60","60日%"],["ex20","20日超额%"],["ex60","60日超额%"],["above20","站上MA20"],["above60","站上MA60"],["mom_rank","20日动量排名"],["close","收盘"]];
+const PCT=new Set(["r5","r20","r60","ex20","ex60"]);let D,key="rank",asc=true;
+const f=(k,v)=>typeof v==="boolean"?(v?"✓":"✗"):PCT.has(k)?`<span class="${v>=0?'p':'n'}">${v>0?'+':''}${v.toFixed(2)}</span>`:v;
+function render(){const rows=[...D.rows].sort((a,b)=>{let x=a[key],y=b[key];if(typeof x==="string")return asc?x.localeCompare(y):y.localeCompare(x);return asc?x-y:y-x});
+document.querySelector("thead tr").innerHTML=COLS.map(([k,l])=>`<th data-k="${k}" class="${k===key?'s':''}">${l}${k===key?(asc?' ▲':' ▼'):''}</th>`).join("");
+document.querySelector("tbody").innerHTML=rows.map(r=>`<tr class="${r.top?'top':''}">`+COLS.map(([k])=>`<td>${f(k,r[k])}${k==="name"&&D.entered.includes(r.code)?'<span class="tag in">新进</span>':''}</td>`).join("")+"</tr>").join("");
+document.querySelectorAll("th").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k===key)asc=!asc;else{key=k;asc=["rank","mom_rank","name","code"].includes(k)}render()})}
+fetch("data/latest.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{D=d;const nm=c=>(d.rows.find(r=>r.code===c)||{name:c}).name;
+document.getElementById("meta").textContent=`数据日期 ${d.data_date} · 更新于 ${d.updated_at}（北京时间） · 基准${d.benchmark.name} 20日 ${d.benchmark.r20}% / 60日 ${d.benchmark.r60}% · 数据源 ${d.sources.join("/")}`+(d.failed.length?` · 抓取失败: ${d.failed.join(",")}`:"");
+document.getElementById("top").innerHTML=d.top_codes.map(c=>`<span>${nm(c)} ${c}</span>`).join("");
+document.getElementById("chg").innerHTML=d.prev_top_codes.length?`对比上期(${d.prev_date})：<span class="in">进入 ${d.entered.map(nm).join("、")||"无"}</span> ｜ <span class="out">退出 ${d.exited.map(c=>nm(c)+" "+c).join("、")||"无"}</span>`:"暂无上期数据（下次更新后显示进出名单）";
+document.getElementById("rule").innerHTML="<b>得分规则</b>："+d.rule+"。百分位为在本池内的相对排名（0=最弱，100=最强）；超额=ETF涨幅−沪深300涨幅；前"+d.top_n+"名为当期八友。";render()})
+.catch(e=>document.getElementById("meta").textContent="数据加载失败："+e);
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
+</script></body></html>

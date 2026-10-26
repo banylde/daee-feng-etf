@@ -1,0 +1,26 @@
+name: 更新ETF数据
+on:
+  schedule:
+    - cron: "40 7 * * 1-5"   # UTC 07:40 = 北京时间 15:40，周一至周五
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 抓数并计算
+        run: python scripts/fetch.py
+      - name: 提交 latest.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/latest.json
+          if git diff --cached --quiet; then echo "无变化"; else git commit -m "data: $(TZ=Asia/Shanghai date '+%F %H:%M') 更新" && git push; fi
