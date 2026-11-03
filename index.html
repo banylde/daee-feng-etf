@@ -52,8 +52,8 @@ tbody tr:hover td{background:var(--raised)}
 <div class="page">
 <header class="mast"><div class="seal" aria-hidden="true">风</div><div><div class="brand">大鹅基金 · 风部 ETF 轮动看板</div><h1>八友御风</h1>
 <div id="meta">加载中…</div></div></header>
-<div class="card"><h2>当期八友</h2><div class="chips" id="top"></div>
-<div class="mute" id="chg"></div></div>
+<div class="card"><h2>当期八友（正式名单 · 每周调仓）</h2><div class="chips" id="top"></div>
+<div class="mute" id="chg"></div><div class="mute" id="rb"></div><h2>候选排名（每日更新，不改变正式名单）</h2><div class="chips" id="cand"></div></div>
 <div class="wrap"><table id="t"><thead><tr></tr></thead><tbody></tbody></table></div>
 <div class="card mute" id="rule"></div>
 <footer>仅为个人研究工具，不构成投资建议</footer>
@@ -69,8 +69,10 @@ document.querySelectorAll("th").forEach(th=>th.onclick=()=>{const k=th.dataset.k
 fetch("data/latest.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{D=d;const nm=c=>(d.rows.find(r=>r.code===c)||{name:c}).name;
 document.getElementById("meta").textContent=`数据日期 ${d.data_date} · 更新于 ${d.updated_at}（北京时间） · 基准${d.benchmark.name} 20日 ${d.benchmark.r20}% / 60日 ${d.benchmark.r60}% · 数据源 ${d.sources.join("/")}`+(d.failed.length?` · 抓取失败: ${d.failed.join(",")}`:"");
 document.getElementById("top").innerHTML=d.top_codes.map(c=>`<span data-c="${c}">${nm(c)}</span>`).join("");
-document.getElementById("chg").innerHTML=d.prev_top_codes.length?`对比上期(${d.prev_date})：<span class="in">进入 ${d.entered.map(nm).join("、")||"无"}</span> ｜ <span class="out">退出 ${d.exited.map(c=>nm(c)+" "+c).join("、")||"无"}</span>`:"暂无上期数据（下次更新后显示进出名单）";
-document.getElementById("rule").innerHTML="<b>得分规则</b>　"+d.rule+"。百分位为在本池内的相对排名（0=最弱，100=最强）；超额=ETF涨幅−沪深300涨幅；前"+d.top_n+"名为当期八友。";render()})
+document.getElementById("chg").innerHTML=d.prev_top_codes.length?`对比上次调仓(${d.prev_date})：<span class="in">进入 ${d.entered.map(nm).join("、")||"无"}</span> ｜ <span class="out">退出 ${d.exited.map(c=>nm(c)+" "+c).join("、")||"无"}</span>`:"暂无上次调仓（下次调仓后显示进出名单）";
+const O=d.official||{},RB=d.rebalance||{};document.getElementById("rb").innerHTML=`调仓日 ${O.rebalance_date||"—"}（${RB.basis||"每周最后一个交易日收盘"}），下次调仓 ${O.next_rebalance||"—"}，两次调仓之间冻结；<b>${O.buffer}分缓冲</b>：候选须比被替换的在任者得分高出>${O.buffer}分才替换。本期变动：${(O.changes||[]).join("；")||"无"}`;
+document.getElementById("cand").innerHTML=(d.cand_codes||[]).map(c=>`<span data-c="${c}">${nm(c)}</span>`).join("");
+document.getElementById("rule").innerHTML="<b>得分规则</b>　"+d.rule+"。百分位为在本池内的相对排名（0=最弱，100=最强）；超额=ETF涨幅−沪深300涨幅；正式八友按调仓日得分取前"+d.top_n+"名并经缓冲；表中得分为最新交易日。";render()})
 .catch(e=>document.getElementById("meta").textContent="数据加载失败："+e);
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
 </script></body></html>

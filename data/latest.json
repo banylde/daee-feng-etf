@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-03 16:36",
+ "updated_at": "2026-11-03 18:24",
  "data_date": "2026-11-03",
  "benchmark": {
   "name": "沪深300",
@@ -10,39 +10,67 @@
   "r60": -11.76
  },
  "sources": [
+  "eastmoney",
   "tencent"
  ],
  "failed": [],
  "top_n": 8,
  "top_codes": [
   "159930",
-  "159928",
-  "512690",
   "512800",
   "510880",
-  "512170",
-  "512010",
-  "159825"
- ],
- "prev_top_codes": [
-  "512800",
   "512690",
+  "159928",
+  "512010",
+  "512170",
+  "515220"
+ ],
+ "cand_codes": [
   "159930",
   "159928",
+  "512690",
+  "512800",
   "510880",
-  "512170",
-  "512980",
-  "516110"
- ],
- "prev_date": "2026-11-02",
- "entered": [
+  "159825",
   "512010",
-  "159825"
+  "512070"
  ],
- "exited": [
-  "512980",
-  "516110"
- ],
+ "prev_top_codes": [],
+ "prev_date": null,
+ "entered": [],
+ "exited": [],
+ "official": {
+  "rebalance_date": "2026-10-30",
+  "next_rebalance": "2026-11-06",
+  "freq": "weekly",
+  "buffer": 5,
+  "changes": [
+   "能源ETF 首期入选",
+   "银行ETF 首期入选",
+   "红利ETF 首期入选",
+   "酒ETF 首期入选",
+   "消费ETF 首期入选",
+   "医药ETF 首期入选",
+   "医疗ETF 首期入选",
+   "煤炭ETF 首期入选"
+  ],
+  "scores": {
+   "159930": 100.0,
+   "512800": 97.1,
+   "510880": 91.4,
+   "512690": 87.5,
+   "159928": 86.4,
+   "512010": 75.0,
+   "512170": 75.0,
+   "515220": 64.3
+  }
+ },
+ "rebalance": {
+  "freq": "weekly",
+  "basis": "每周最后一个交易日收盘数据",
+  "buffer": 5,
+  "_note": "正式八友每周调仓一次、其间冻结；挑战者得分须高出被替换者>buffer分才替换"
+ },
  "rule": "得分=0.4×20日超额百分位+0.3×60日超额百分位+0.1×5日涨幅百分位+站上MA20加10+站上MA60加10（满分100）",
  "rows": [
   {
@@ -63,7 +91,8 @@
    "mom_rank": 3,
    "score": 94.3,
    "rank": 1,
-   "top": true
+   "top": true,
+   "cand": true
   },
   {
    "code": "159928",
@@ -71,19 +100,20 @@
    "name": "消费ETF",
    "sector": "消费",
    "date": "2026-11-03",
-   "close": 0.71,
-   "r5": 6.77,
-   "r20": 9.74,
-   "r60": 2.9,
-   "ex20": 17.48,
-   "ex60": 14.66,
+   "close": 0.707,
+   "r5": 6.32,
+   "r20": 9.27,
+   "r60": 2.46,
+   "ex20": 17.01,
+   "ex60": 14.22,
    "above20": true,
    "above60": true,
    "src": "tencent",
    "mom_rank": 2,
-   "score": 92.9,
+   "score": 93.9,
    "rank": 2,
-   "top": true
+   "top": true,
+   "cand": true
   },
   {
    "code": "512690",
@@ -91,19 +121,20 @@
    "name": "酒ETF",
    "sector": "白酒",
    "date": "2026-11-03",
-   "close": 0.45,
-   "r5": 8.43,
-   "r20": 11.11,
-   "r60": 0.45,
-   "ex20": 18.85,
-   "ex60": 12.21,
+   "close": 0.454,
+   "r5": 9.4,
+   "r20": 12.1,
+   "r60": 1.34,
+   "ex20": 19.84,
+   "ex60": 13.1,
    "above20": true,
    "above60": true,
    "src": "tencent",
    "mom_rank": 1,
    "score": 92.5,
    "rank": 3,
-   "top": true
+   "top": true,
+   "cand": true
   },
   {
    "code": "512800",
@@ -123,7 +154,8 @@
    "mom_rank": 4,
    "score": 88.9,
    "rank": 4,
-   "top": true
+   "top": true,
+   "cand": true
   },
   {
    "code": "510880",
@@ -143,47 +175,8 @@
    "mom_rank": 5,
    "score": 87.5,
    "rank": 5,
-   "top": true
-  },
-  {
-   "code": "512170",
-   "market": "sh",
-   "name": "医疗ETF",
-   "sector": "医疗",
-   "date": "2026-11-03",
-   "close": 0.34,
-   "r5": 3.34,
-   "r20": 0.29,
-   "r60": 3.66,
-   "ex20": 8.04,
-   "ex60": 15.42,
-   "above20": true,
-   "above60": true,
-   "src": "tencent",
-   "mom_rank": 10,
-   "score": 82.1,
-   "rank": 6,
-   "top": true
-  },
-  {
-   "code": "512010",
-   "market": "sh",
-   "name": "医药ETF",
-   "sector": "医药",
-   "date": "2026-11-03",
-   "close": 0.38,
-   "r5": 2.43,
-   "r20": 0.8,
-   "r60": 1.6,
-   "ex20": 8.54,
-   "ex60": 13.36,
-   "above20": true,
-   "above60": false,
-   "src": "tencent",
-   "mom_rank": 8,
-   "score": 71.4,
-   "rank": 7,
-   "top": true
+   "top": true,
+   "cand": true
   },
   {
    "code": "159825",
@@ -201,9 +194,31 @@
    "above60": false,
    "src": "tencent",
    "mom_rank": 7,
-   "score": 71.4,
-   "rank": 8,
-   "top": true
+   "score": 71.8,
+   "rank": 6,
+   "top": false,
+   "cand": true
+  },
+  {
+   "code": "512010",
+   "market": "sh",
+   "name": "医药ETF",
+   "sector": "医药",
+   "date": "2026-11-03",
+   "close": 0.379,
+   "r5": 2.16,
+   "r20": 0.53,
+   "r60": 1.34,
+   "ex20": 8.27,
+   "ex60": 13.1,
+   "above20": true,
+   "above60": false,
+   "src": "tencent",
+   "mom_rank": 8,
+   "score": 70.4,
+   "rank": 7,
+   "top": true,
+   "cand": true
   },
   {
    "code": "512070",
@@ -221,9 +236,31 @@
    "above60": false,
    "src": "tencent",
    "mom_rank": 6,
-   "score": 70.0,
+   "score": 70.4,
+   "rank": 8,
+   "top": false,
+   "cand": true
+  },
+  {
+   "code": "512170",
+   "market": "sh",
+   "name": "医疗ETF",
+   "sector": "医疗",
+   "date": "2026-11-03",
+   "close": 0.335,
+   "r5": 1.82,
+   "r20": -1.18,
+   "r60": 2.13,
+   "ex20": 6.56,
+   "ex60": 13.89,
+   "above20": true,
+   "above60": false,
+   "src": "tencent",
+   "mom_rank": 12,
+   "score": 66.4,
    "rank": 9,
-   "top": false
+   "top": true,
+   "cand": false
   },
   {
    "code": "512980",
@@ -241,9 +278,10 @@
    "above60": false,
    "src": "tencent",
    "mom_rank": 9,
-   "score": 62.9,
+   "score": 63.2,
    "rank": 10,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "516110",
@@ -260,10 +298,11 @@
    "above20": true,
    "above60": false,
    "src": "tencent",
-   "mom_rank": 11,
-   "score": 56.4,
+   "mom_rank": 10,
+   "score": 57.9,
    "rank": 11,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "512880",
@@ -280,10 +319,11 @@
    "above20": true,
    "above60": false,
    "src": "tencent",
-   "mom_rank": 12,
-   "score": 55.7,
+   "mom_rank": 11,
+   "score": 57.1,
    "rank": 12,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "515220",
@@ -303,7 +343,8 @@
    "mom_rank": 13,
    "score": 54.3,
    "rank": 13,
-   "top": false
+   "top": true,
+   "cand": false
   },
   {
    "code": "159996",
@@ -321,9 +362,10 @@
    "above60": false,
    "src": "tencent",
    "mom_rank": 14,
-   "score": 49.3,
+   "score": 50.0,
    "rank": 14,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "518880",
@@ -331,19 +373,20 @@
    "name": "黄金ETF",
    "sector": "黄金",
    "date": "2026-11-03",
-   "close": 7.99,
-   "r5": -2.17,
-   "r20": -6.21,
-   "r60": -5.07,
-   "ex20": 1.53,
-   "ex60": 6.69,
+   "close": 7.989,
+   "r5": -2.18,
+   "r20": -6.22,
+   "r60": -5.08,
+   "ex20": 1.52,
+   "ex60": 6.68,
    "above20": false,
    "above60": false,
    "src": "tencent",
    "mom_rank": 16,
-   "score": 40.4,
+   "score": 40.7,
    "rank": 15,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "516970",
@@ -363,7 +406,8 @@
    "mom_rank": 15,
    "score": 35.7,
    "rank": 16,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "512660",
@@ -383,7 +427,8 @@
    "mom_rank": 19,
    "score": 30.4,
    "rank": 17,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "562500",
@@ -403,7 +448,8 @@
    "mom_rank": 17,
    "score": 30.0,
    "rank": 18,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "515030",
@@ -423,7 +469,8 @@
    "mom_rank": 18,
    "score": 28.2,
    "rank": 19,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "512200",
@@ -431,19 +478,20 @@
    "name": "房地产ETF",
    "sector": "房地产",
    "date": "2026-11-03",
-   "close": 1.13,
-   "r5": -1.91,
-   "r20": -12.88,
-   "r60": -5.36,
-   "ex20": -5.14,
-   "ex60": 6.4,
+   "close": 1.126,
+   "r5": -2.26,
+   "r20": -13.18,
+   "r60": -5.7,
+   "ex20": -5.44,
+   "ex60": 6.07,
    "above20": false,
    "above60": false,
    "src": "tencent",
    "mom_rank": 24,
-   "score": 27.1,
+   "score": 26.8,
    "rank": 20,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "515790",
@@ -459,11 +507,12 @@
    "ex60": -4.71,
    "above20": false,
    "above60": false,
-   "src": "tencent",
+   "src": "eastmoney",
    "mom_rank": 20,
    "score": 26.1,
    "rank": 21,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "513130",
@@ -483,7 +532,8 @@
    "mom_rank": 21,
    "score": 21.4,
    "rank": 22,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "513180",
@@ -503,7 +553,8 @@
    "mom_rank": 22,
    "score": 20.4,
    "rank": 23,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "512720",
@@ -511,19 +562,20 @@
    "name": "计算机ETF",
    "sector": "计算机",
    "date": "2026-11-03",
-   "close": 0.97,
-   "r5": -4.06,
-   "r20": -11.09,
-   "r60": -16.95,
-   "ex20": -3.35,
-   "ex60": -5.19,
+   "close": 0.969,
+   "r5": -4.15,
+   "r20": -11.18,
+   "r60": -17.04,
+   "ex20": -3.44,
+   "ex60": -5.28,
    "above20": false,
    "above60": false,
    "src": "tencent",
    "mom_rank": 23,
    "score": 18.6,
    "rank": 24,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "512400",
@@ -531,19 +583,20 @@
    "name": "有色金属ETF",
    "sector": "有色",
    "date": "2026-11-03",
-   "close": 1.39,
-   "r5": -3.87,
-   "r20": -14.14,
-   "r60": -18.14,
-   "ex20": -6.4,
-   "ex60": -6.38,
+   "close": 1.387,
+   "r5": -4.08,
+   "r20": -14.33,
+   "r60": -18.32,
+   "ex20": -6.59,
+   "ex60": -6.55,
    "above20": false,
    "above60": false,
    "src": "tencent",
    "mom_rank": 25,
    "score": 15.0,
    "rank": 25,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "512480",
@@ -551,19 +604,20 @@
    "name": "半导体ETF",
    "sector": "半导体",
    "date": "2026-11-03",
-   "close": 0.7,
-   "r5": -8.5,
-   "r20": -28.93,
-   "r60": -24.0,
-   "ex20": -21.19,
-   "ex60": -12.23,
+   "close": 0.702,
+   "r5": -8.24,
+   "r20": -28.73,
+   "r60": -23.78,
+   "ex20": -20.99,
+   "ex60": -12.02,
    "above20": false,
    "above60": false,
    "src": "tencent",
    "mom_rank": 27,
    "score": 7.1,
    "rank": 26,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "515070",
@@ -583,7 +637,8 @@
    "mom_rank": 26,
    "score": 6.8,
    "rank": 27,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "159995",
@@ -603,7 +658,8 @@
    "mom_rank": 28,
    "score": 3.2,
    "rank": 28,
-   "top": false
+   "top": false,
+   "cand": false
   },
   {
    "code": "515880",
@@ -611,19 +667,20 @@
    "name": "通信ETF",
    "sector": "通信",
    "date": "2026-11-03",
-   "close": 0.4,
-   "r5": -16.14,
-   "r20": -36.41,
-   "r60": -31.27,
-   "ex20": -28.67,
-   "ex60": -19.51,
+   "close": 0.403,
+   "r5": -15.51,
+   "r20": -35.93,
+   "r60": -30.76,
+   "ex20": -28.19,
+   "ex60": -19.0,
    "above20": false,
    "above60": false,
-   "src": "tencent",
+   "src": "eastmoney",
    "mom_rank": 29,
    "score": 0.0,
    "rank": 29,
-   "top": false
+   "top": false,
+   "cand": false
   }
  ]
 }
