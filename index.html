@@ -48,26 +48,43 @@ tr.top td:nth-child(2){color:var(--acc-ink)}
 tbody tr:hover td{background:var(--raised)}
 #rule{font-size:13px;line-height:22px;color:var(--sec)}#rule b{font-weight:500;color:var(--fg)}
 .tag.in{color:var(--up);border-color:rgba(229,72,77,.35);background:transparent}
+.fill{margin:0 0 16px;padding:10px 14px;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;background:var(--card);color:var(--fg);font-size:13px;line-height:20px}
+.banner{margin:0 0 16px;padding:14px 16px;border-radius:12px;border:1px solid rgba(229,72,77,.55);background:rgba(229,72,77,.16);color:#ffb4b6;font-size:16px;line-height:1.5}
+.banner b{color:var(--up);font-weight:600;margin-right:8px}
+#hist th,#hist td{text-align:left;white-space:normal;vertical-align:top;height:auto;font-family:var(--sans);cursor:default}
+#hist td:first-child{white-space:nowrap}
+#hist td:nth-child(2),#hist th:nth-child(2){position:static;z-index:auto;background:transparent;text-align:left}
+#hist{min-width:720px}
 </style></head><body>
 <div class="page">
 <header class="mast"><div class="seal" aria-hidden="true">风</div><div><div class="brand">大鹅基金 · 风部 ETF 轮动看板</div><h1>八友御风</h1>
 <div id="meta">加载中…</div></div></header>
+<div id="stale" class="banner" hidden><b>数据过期</b><span id="staleWhy"></span></div>
+<p class="fill">纸面成交：信号在信号日收盘后计算，按下一交易日开盘价成交（T+1 open）。本看板没有涨停或跌停无法成交时的顺延、跳过或改价规则。</p>
 <div class="card"><h2>当期八友（正式名单 · 每周调仓）</h2><div class="chips" id="top"></div>
 <div class="mute" id="chg"></div><div class="mute" id="rb"></div><h2>候选排名（每日更新，不改变正式名单）</h2><div class="chips" id="cand"></div></div>
 <div class="wrap"><table id="t"><thead><tr></tr></thead><tbody></tbody></table></div>
+<div class="card"><h2>调仓历史</h2><div class="mute">每次正式调仓追加一条。权重为等权（1/只数）。只收录已有调仓记录，不补写未知成交。</div></div>
+<div class="wrap"><table id="hist"><thead><tr><th>调仓日</th><th>进入</th><th>退出</th><th>持仓与权重</th><th>变动</th></tr></thead><tbody><tr><td colspan="5">加载中…</td></tr></tbody></table></div>
 <div class="card mute" id="rule"></div>
 <footer>仅为个人研究工具，不构成投资建议</footer>
 </div>
 <script>
 const COLS=[["rank","排名"],["name","名称"],["code","代码"],["score","得分"],["r5","5日%"],["r20","20日%"],["r60","60日%"],["ex20","20日超额%"],["ex60","60日超额%"],["above20","站上MA20"],["above60","站上MA60"],["mom_rank","20日动量排名"],["close","收盘"]];
 const PCT=new Set(["r5","r20","r60","ex20","ex60"]);let D,key="rank",asc=true;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const f=(k,v)=>typeof v==="boolean"?(v?'<span class="yes">是</span>':'<span class="no">否</span>'):PCT.has(k)?`<span class="${v>=0?'p':'n'}">${v>0?'+':''}${v.toFixed(2)}</span>`:v;
+function showStale(d){const el=document.getElementById("stale");if(!d||!d.stale){el.hidden=true;return}el.hidden=false;document.getElementById("staleWhy").textContent=d.stale_reason?("　"+d.stale_reason+"。下列数字不是新行情。"):"　下列数字不是新行情。"}
+function renderHistory(h){const ev=[...(h.events||[])].reverse();const pair=xs=>(xs||[]).map(x=>esc(x.name)+" "+esc(x.code)).join("、")||"无";const hold=xs=>(xs||[]).map(x=>esc(x.name)+" "+esc(x.code)+" "+esc(x.weight)).join("、")||"无";
+document.querySelector("#hist tbody").innerHTML=ev.length?ev.map(e=>`<tr><td>${esc(e.date)}</td><td>${pair(e.entered)}</td><td>${pair(e.exited)}</td><td>${hold(e.holdings)}</td><td>${esc((e.changes||[]).join("；")||e.reason||"")}</td></tr>`).join(""):'<tr><td colspan="5">暂无调仓记录</td></tr>'}
 function render(){const rows=[...D.rows].sort((a,b)=>{let x=a[key],y=b[key];if(typeof x==="string")return asc?x.localeCompare(y):y.localeCompare(x);return asc?x-y:y-x});
-document.querySelector("thead tr").innerHTML=COLS.map(([k,l])=>`<th data-k="${k}" class="${k===key?'s':''}">${l}${k===key?(asc?' ▲':' ▼'):''}</th>`).join("");
-document.querySelector("tbody").innerHTML=rows.map(r=>`<tr class="${r.top?'top':''}">`+COLS.map(([k])=>`<td>${f(k,r[k])}${k==="name"&&D.entered.includes(r.code)?'<span class="tag in">新进</span>':''}</td>`).join("")+"</tr>").join("");
-document.querySelectorAll("th").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k===key)asc=!asc;else{key=k;asc=["rank","mom_rank","name","code"].includes(k)}render()})}
-fetch("data/latest.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{D=d;const nm=c=>(d.rows.find(r=>r.code===c)||{name:c}).name;
-document.getElementById("meta").textContent=`数据日期 ${d.data_date} · 更新于 ${d.updated_at}（北京时间） · 基准${d.benchmark.name} 20日 ${d.benchmark.r20}% / 60日 ${d.benchmark.r60}% · 数据源 ${d.sources.join("/")}`+(d.failed.length?` · 抓取失败: ${d.failed.join(",")}`:"");
+document.querySelector("#t thead tr").innerHTML=COLS.map(([k,l])=>`<th data-k="${k}" class="${k===key?'s':''}">${l}${k===key?(asc?' ▲':' ▼'):''}</th>`).join("");
+document.querySelector("#t tbody").innerHTML=rows.map(r=>`<tr class="${r.top?'top':''}">`+COLS.map(([k])=>`<td>${f(k,r[k])}${k==="name"&&D.entered.includes(r.code)?'<span class="tag in">新进</span>':''}</td>`).join("")+"</tr>").join("");
+document.querySelectorAll("#t th").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k===key)asc=!asc;else{key=k;asc=["rank","mom_rank","name","code"].includes(k)}render()})}
+fetch("data/history.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(String(r.status));return r.json()}).then(renderHistory).catch(e=>{document.querySelector("#hist tbody").innerHTML=`<tr><td colspan="5">调仓历史加载失败：${esc(e.message||e)}</td></tr>`});
+fetch("data/latest.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{D=d;showStale(d);if(!Array.isArray(d.rows)||!d.benchmark){document.getElementById("meta").textContent="数据不可用"+(d.stale_reason?(" · "+d.stale_reason):"");return}const nm=c=>(d.rows.find(r=>r.code===c)||{name:c}).name;
+const failed=d.failed||[],fallbacks=d.fallbacks||[];
+document.getElementById("meta").textContent=`数据日期 ${d.data_date} · 更新于 ${d.updated_at}（北京时间） · 基准${d.benchmark.name} 20日 ${d.benchmark.r20}% / 60日 ${d.benchmark.r60}% · 数据源 ${(d.sources||[]).join("/")}`+(failed.length?` · 抓取失败: ${failed.join(",")}`:"")+(fallbacks.length?` · 主源失败已回退: ${fallbacks.map(x=>x.code+"→"+x.source).join(",")}`:"");
 document.getElementById("top").innerHTML=d.top_codes.map(c=>`<span data-c="${c}">${nm(c)}</span>`).join("");
 document.getElementById("chg").innerHTML=d.prev_top_codes.length?`对比上次调仓(${d.prev_date})：<span class="in">进入 ${d.entered.map(nm).join("、")||"无"}</span> ｜ <span class="out">退出 ${d.exited.map(c=>nm(c)+" "+c).join("、")||"无"}</span>`:"暂无上次调仓（下次调仓后显示进出名单）";
 const O=d.official||{},RB=d.rebalance||{};document.getElementById("rb").innerHTML=`调仓日 ${O.rebalance_date||"—"}（${RB.basis||"每周最后一个交易日收盘"}），下次调仓 ${O.next_rebalance||"—"}，两次调仓之间冻结；<b>${O.buffer}分缓冲</b>：候选须比被替换的在任者得分高出>${O.buffer}分才替换。本期变动：${(O.changes||[]).join("；")||"无"}`;
