@@ -1,0 +1,194 @@
+{
+ "weight_basis": "equal",
+ "weight_note": "正式名单等权，每只权重为 1/只数。得分只用于选择，不是仓位。",
+ "events": [
+  {
+   "date": "2026-10-30",
+   "computed_at": "2026-11-03 18:24",
+   "changes": [
+    "能源ETF 首期入选",
+    "银行ETF 首期入选",
+    "红利ETF 首期入选",
+    "酒ETF 首期入选",
+    "消费ETF 首期入选",
+    "医药ETF 首期入选",
+    "医疗ETF 首期入选",
+    "煤炭ETF 首期入选"
+   ],
+   "reason": "能源ETF 首期入选；银行ETF 首期入选；红利ETF 首期入选；酒ETF 首期入选；消费ETF 首期入选；医药ETF 首期入选；医疗ETF 首期入选；煤炭ETF 首期入选",
+   "entered": [
+    {
+     "code": "159930",
+     "name": "能源ETF"
+    },
+    {
+     "code": "512800",
+     "name": "银行ETF"
+    },
+    {
+     "code": "510880",
+     "name": "红利ETF"
+    },
+    {
+     "code": "512690",
+     "name": "酒ETF"
+    },
+    {
+     "code": "159928",
+     "name": "消费ETF"
+    },
+    {
+     "code": "512010",
+     "name": "医药ETF"
+    },
+    {
+     "code": "512170",
+     "name": "医疗ETF"
+    },
+    {
+     "code": "515220",
+     "name": "煤炭ETF"
+    }
+   ],
+   "exited": [],
+   "holdings": [
+    {
+     "code": "159930",
+     "name": "能源ETF",
+     "weight": "1/8",
+     "score": 100.0
+    },
+    {
+     "code": "512800",
+     "name": "银行ETF",
+     "weight": "1/8",
+     "score": 97.1
+    },
+    {
+     "code": "510880",
+     "name": "红利ETF",
+     "weight": "1/8",
+     "score": 91.4
+    },
+    {
+     "code": "512690",
+     "name": "酒ETF",
+     "weight": "1/8",
+     "score": 87.5
+    },
+    {
+     "code": "159928",
+     "name": "消费ETF",
+     "weight": "1/8",
+     "score": 86.4
+    },
+    {
+     "code": "512010",
+     "name": "医药ETF",
+     "weight": "1/8",
+     "score": 75.0
+    },
+    {
+     "code": "512170",
+     "name": "医疗ETF",
+     "weight": "1/8",
+     "score": 75.0
+    },
+    {
+     "code": "515220",
+     "name": "煤炭ETF",
+     "weight": "1/8",
+     "score": 64.3
+    }
+   ]
+  },
+  {
+   "date": "2026-11-06",
+   "computed_at": "2026-11-06 16:35",
+   "changes": [
+    "传媒ETF(88.6) 替换 煤炭ETF(25.0)",
+    "农业ETF(81.4) 替换 能源ETF(39.6)",
+    "汽车ETF(66.4) 替换 红利ETF(50.0)"
+   ],
+   "reason": "传媒ETF(88.6) 替换 煤炭ETF(25.0)；农业ETF(81.4) 替换 能源ETF(39.6)；汽车ETF(66.4) 替换 红利ETF(50.0)",
+   "entered": [
+    {
+     "code": "512980",
+     "name": "传媒ETF"
+    },
+    {
+     "code": "159825",
+     "name": "农业ETF"
+    },
+    {
+     "code": "516110",
+     "name": "汽车ETF"
+    }
+   ],
+   "exited": [
+    {
+     "code": "159930",
+     "name": "能源ETF"
+    },
+    {
+     "code": "510880",
+     "name": "红利ETF"
+    },
+    {
+     "code": "515220",
+     "name": "煤炭ETF"
+    }
+   ],
+   "holdings": [
+    {
+     "code": "159928",
+     "name": "消费ETF",
+     "weight": "1/8",
+     "score": 95.4
+    },
+    {
+     "code": "512690",
+     "name": "酒ETF",
+     "weight": "1/8",
+     "score": 90.4
+    },
+    {
+     "code": "512980",
+     "name": "传媒ETF",
+     "weight": "1/8",
+     "score": 88.6
+    },
+    {
+     "code": "512170",
+     "name": "医疗ETF",
+     "weight": "1/8",
+     "score": 87.9
+    },
+    {
+     "code": "512800",
+     "name": "银行ETF",
+     "weight": "1/8",
+     "score": 87.1
+    },
+    {
+     "code": "512010",
+     "name": "医药ETF",
+     "weight": "1/8",
+     "score": 82.1
+    },
+    {
+     "code": "159825",
+     "name": "农业ETF",
+     "weight": "1/8",
+     "score": 81.4
+    },
+    {
+     "code": "516110",
+     "name": "汽车ETF",
+     "weight": "1/8",
+     "score": 66.4
+    }
+   ]
+  }
+ ]
+}
