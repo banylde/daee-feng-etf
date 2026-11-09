@@ -1,0 +1,28 @@
+name: 历史回测
+on:
+  schedule:
+    - cron: "40 8 1 * *"   # UTC 08:40 = 北京时间 16:40，每月 1 日
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: backtest
+  cancel-in-progress: false
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 规则测试
+        run: python scripts/test_backtest.py
+      - name: 运行回测
+        run: python scripts/backtest.py
+      - name: 提交回测结果
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/backtest.json
+          if git diff --cached --quiet; then echo "无变化"; else git commit -m "data: $(TZ=Asia/Shanghai date '+%F') 历史回测" && git push; fi
