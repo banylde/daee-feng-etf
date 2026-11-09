@@ -4,14 +4,17 @@
 **仅为个人研究工具，不构成投资建议。** 仓库内无任何持仓/账户/收益数据，也无任何密钥。
 
 ## 纸面成交
-信号在信号日**收盘后**计算；纸面成交价为**下一交易日开盘价**（T+1 open）。本看板没有涨停或跌停无法成交时的顺延、跳过或改价规则。这只约定成交时点，不含回测收益。页面标题下方有同一句说明。
+信号在信号日**收盘后**计算；纸面成交价为**下一交易日开盘价**（T+1 open）。本看板没有涨停或跌停无法成交时的顺延、跳过或改价规则。历史回测使用同一个成交时点。页面标题下方有同一句说明。
 
 ## 结构
 - `etfs.json`：ETF池与基准（沪深300）、`top_n`（默认8）
-- `scripts/fetch.py`：抓日线、算指标，写 `data/latest.json`（仅用 Python 标准库）；正式调仓时追加 `data/history.json`
+- `scripts/fetch.py`：抓日线、算指标，写 `data/latest.json`（仅用 Python 标准库）；正式调仓时追加 `data/history.json`。打分和缓冲换仓在这里，回测直接调用
+- `scripts/backtest.py`：历史回测，写 `data/backtest.json`。`scripts/test_backtest.py` 不联网，检查规则和成交
+- `requirements.txt`：抓数和回测都只用 Python 标准库
 - `data/official.json`：当前正式八友
 - `data/history.json`：历次正式调仓（日期、进出代码与名称、等权权重、变动原因）
 - `.github/workflows/update.yml`：周一至周五北京时间 15:40 自动运行（也可在 Actions 页手动 Run workflow）
+- `.github/workflows/backtest.yml`：每月 1 日北京时间 16:40 跑历史回测，也可在 Actions 页手动运行。不随每日抓数执行
 - `index.html` / `manifest.webmanifest` / `sw.js` / `icons/`：前端与 PWA
 
 ## 数据源
@@ -40,6 +43,19 @@
 
 - 2026-10-30：首期入选（`official.json` 在引入每周调仓时的快照）
 - 2026-11-06：当期调仓（现 `official.json` 的 `changes` 与进出名单）
+
+## 历史回测
+`python3 scripts/backtest.py` 用腾讯前复权日线（失败时东方财富前复权、新浪不复权）拉池内 ETF、沪深300指数和沪深300ETF（510300）的开盘价、收盘价，尽量覆盖近 5 年，并在起点前留出打分要的 60 个交易日。某日没有成交价就留空，不插值。上市较晚、首根日线更晚的 ETF，从那根真实日线之后才进入样本。
+
+选股直接调用 `fetch.py` 的 `score_rows` 和 `choose_codes`：每周最后一个交易日收盘打分，持有 8 只，新入选者得分必须**高于**被替换在位者 5 分以上，两次调仓之间冻结。信号当日不成交，下一交易日开盘才成交。模拟从样本内第一个可打分的周末、现金起步，不读、不改 `data/official.json`。
+
+费用写在 `scripts/backtest.py` 的常量里，页面同样写明：单边佣金万分之三（`COMMISSION = 0.0003`），另加千分之一滑点（`SLIPPAGE = 0.001`），买入和卖出各计一次。夏普的无风险利率是年化 2%。
+
+两条基准用同一段区间和同一套费用：沪深300ETF 买入持有；池内当时已有收盘价的 ETF 等权，每月最后一个交易日收盘后、下一交易日开盘再平衡。
+
+缓冲 0/5/10 分、每周/双周只出现在「样本内敏感性」里，不写回 `config.json`。双周从这段样本的第一个有效周末信号起每隔一次调仓。这些数字是同一样本内的对照。
+
+页面「历史回测」读取 `data/backtest.json`，画出净值和回撤，并列出指标、年度收益和敏感性。页头写明：**回测不代表未来收益**。
 
 ## 修改ETF池
 编辑 `etfs.json` 的 `etfs` 数组：`code`（6位代码）、`market`（`sh` 上交所 / `sz` 深交所）、`name`、`sector`。提交后在 Actions 手动运行一次即可刷新。本地：`python3 scripts/fetch.py`。

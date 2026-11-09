@@ -202,8 +202,10 @@ def ret(c, n):
 def ma(c, n):
     return sum(c[-n:]) / n
 
+SCORE_RULE = "得分=0.4×20日超额百分位+0.3×60日超额百分位+0.1×5日涨幅百分位+站上MA20加10+站上MA60加10（满分100）"
+
 def score_rows(cfg, K, bc):
-    """按给定收盘序列（已截到同一日期）计算得分与排名。"""
+    """按给定收盘序列（已截到同一日期）计算得分与排名。回测直接调用本函数。"""
     b20, b60 = ret(bc, 20), ret(bc, 60)
     rows = []
     for e in cfg["etfs"]:
@@ -231,14 +233,57 @@ def score_rows(cfg, K, bc):
     for i, r in enumerate(rows): r["rank"] = i + 1
     return rows, b20, b60
 
+def as_date(d):
+    if isinstance(d, dt.datetime):
+        return d.date()
+    if isinstance(d, dt.date):
+        return d
+    return dt.date.fromisoformat(d)
+
+def week_end_dates(dates, today):
+    """每个已结束周的最后交易日。判定与原先 last_week_end 逐条相同。"""
+    today = as_date(today)
+    D = [as_date(d) for d in dates]
+    wk = lambda d: d.isocalendar()[:2]
+    out = []
+    for i, d in enumerate(D):
+        nxt = D[i + 1] if i + 1 < len(D) else None
+        if d.weekday() == 4 or (nxt and wk(nxt) > wk(d)) or (not nxt and wk(today) > wk(d)):
+            out.append(d.isoformat())
+    return out
+
 def last_week_end(dates, today):
     """最近一个已结束周的最后交易日：周五，或其后已出现下一周的交易日/日历已进入下一周。"""
-    D = [dt.date.fromisoformat(d) for d in dates]; wk = lambda d: d.isocalendar()[:2]
-    for i in range(len(D) - 1, -1, -1):
-        d = D[i]; nxt = D[i + 1] if i + 1 < len(D) else None
-        if d.weekday() == 4 or (nxt and wk(nxt) > wk(d)) or (not nxt and wk(today) > wk(d)):
-            return d.isoformat()
-    return None
+    ends = week_end_dates(dates, today)
+    return ends[-1] if ends else None
+
+def choose_codes(rrows, prev_codes, top_n, buf, names):
+    """按调仓日得分更新名单。rrows 须已按得分从高到低，且只含当日有收盘的标的。
+
+    空位先按得分补齐。其后挑战者替换在位者的条件是：得分 > 被替换者得分 + buf。
+    缓冲数值由调用方传入，本函数不另设阈值。
+    """
+    sc = {r["code"]: r["score"] for r in rrows}
+    nm = names
+    inc = list(prev_codes or [])
+    changes = []
+    kept = [c for c in inc if c in sc]
+    changes += [f"{nm.get(c, c)} 调仓日无数据→移出" for c in inc if c not in sc]
+    for r in rrows:
+        if len(kept) >= top_n: break
+        if r["code"] not in kept:
+            kept.append(r["code"])
+            changes.append(f'{r["name"]} 补入空位' if inc else f'{r["name"]} 首期入选')
+    for _ in range(top_n * 3):
+        ch = [r["code"] for r in rrows if r["code"] not in kept]
+        if not ch: break
+        c = ch[0]; w = min(kept, key=lambda x: sc[x])
+        if sc[c] > sc[w] + buf:
+            kept[kept.index(w)] = c
+            changes.append(f"{nm[c]}({sc[c]}) 替换 {nm[w]}({sc[w]})")
+        else: break
+    kept.sort(key=lambda c: -sc[c])
+    return kept, changes, sc
 
 def main():
     cfg = json.load(open(os.path.join(ROOT, "etfs.json"), encoding="utf-8"))
@@ -276,21 +321,9 @@ def main():
         cut = lambda k: [x for x in k if x[0] <= R]
         rrows, _, _ = score_rows(cfg, {c: cut(k) for c, k in K.items()}, [x[1] for x in cut(bk)])
         rrows = [r for r in rrows if r["date"] == R]  # 仅用调仓日有收盘价的ETF
-        sc = {r["code"]: r["score"] for r in rrows}; nm = {e["code"]: e["name"] for e in cfg["etfs"]}
-        inc = OF.get("codes", []); changes = []
-        kept = [c for c in inc if c in sc]
-        changes += [f"{nm.get(c, c)} 调仓日无数据→移出" for c in inc if c not in sc]
-        for r in rrows:
-            if len(kept) >= top_n: break
-            if r["code"] not in kept: kept.append(r["code"]); changes.append(f'{r["name"]} 补入空位' if inc else f'{r["name"]} 首期入选')
-        for _ in range(top_n * 3):
-            ch = [r["code"] for r in rrows if r["code"] not in kept]
-            if not ch: break
-            c = ch[0]; w = min(kept, key=lambda x: sc[x])
-            if sc[c] > sc[w] + buf:
-                kept[kept.index(w)] = c; changes.append(f"{nm[c]}({sc[c]}) 替换 {nm[w]}({sc[w]})")
-            else: break
-        kept.sort(key=lambda c: -sc[c])
+        nm = {e["code"]: e["name"] for e in cfg["etfs"]}
+        inc = OF.get("codes", [])
+        kept, changes, sc = choose_codes(rrows, inc, top_n, buf, nm)
         Rd = dt.date.fromisoformat(R); nxt = Rd + dt.timedelta(days=(4 - Rd.weekday()) % 7 or 7)
         OF = {"rebalance_date": R, "next_rebalance": nxt.isoformat(), "freq": rb["freq"], "buffer": buf,
               "codes": kept, "scores": {c: sc[c] for c in kept}, "prev_codes": inc, "prev_rebalance_date": OF.get("rebalance_date"),
@@ -321,7 +354,7 @@ def main():
         "exited": [c for c in prev_top if c not in top],
         "official": {k: OF.get(k) for k in ("rebalance_date", "next_rebalance", "freq", "buffer", "changes", "scores")},
         "rebalance": rb,
-        "rule": "得分=0.4×20日超额百分位+0.3×60日超额百分位+0.1×5日涨幅百分位+站上MA20加10+站上MA60加10（满分100）",
+        "rule": SCORE_RULE,
         "rows": rows,
     }
     write_json(path, out)

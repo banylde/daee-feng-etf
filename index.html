@@ -55,6 +55,19 @@ tbody tr:hover td{background:var(--raised)}
 #hist td:first-child{white-space:nowrap}
 #hist td:nth-child(2),#hist th:nth-child(2){position:static;z-index:auto;background:transparent;text-align:left}
 #hist{min-width:720px}
+.bt table{min-width:680px}
+.bt th,.bt td{height:auto}
+.bt th{cursor:default}
+.bt th:nth-child(2),.bt td:nth-child(2),.bt th:first-child,.bt td:first-child{position:static;left:auto;z-index:auto;background:transparent}
+.bt th:first-child,.bt td:first-child{text-align:left;font-family:var(--sans)}
+.bt th:nth-child(2),.bt td:nth-child(2){text-align:right;font-family:var(--mono),var(--sans)}
+tr.live td{background:rgba(127,167,217,.12)}
+.chart-box{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:8px 8px 12px;margin:8px 0 0}
+.chart{width:100%;height:auto;display:block;touch-action:pan-y}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:8px;color:var(--sec);font-size:12px}
+.swatch{display:inline-block;width:16px;height:3px;margin-right:6px;vertical-align:middle;border-radius:1px}
+.readout{font-family:var(--mono),var(--sans);font-size:12px;color:var(--sec);min-height:18px;margin-top:6px}
+#btMeta{white-space:pre-wrap}
 </style></head><body>
 <div class="page">
 <header class="mast"><div class="seal" aria-hidden="true">风</div><div><div class="brand">大鹅基金 · 风部 ETF 轮动看板</div><h1>八友御风</h1>
@@ -66,6 +79,27 @@ tbody tr:hover td{background:var(--raised)}
 <div class="wrap"><table id="t"><thead><tr></tr></thead><tbody></tbody></table></div>
 <div class="card"><h2>调仓历史</h2><div class="mute">每次正式调仓追加一条。权重为等权（1/只数）。只收录已有调仓记录，不补写未知成交。</div></div>
 <div class="wrap"><table id="hist"><thead><tr><th>调仓日</th><th>进入</th><th>退出</th><th>持仓与权重</th><th>变动</th></tr></thead><tbody><tr><td colspan="5">加载中…</td></tr></tbody></table></div>
+<div class="card" id="btCard">
+<h2>历史回测</h2>
+<p class="fill">回测不代表未来收益。</p>
+<p class="mute">交易成本按单边佣金万分之三，另加千分之一滑点，买入和卖出各计一次。夏普的无风险利率为年化 2%。主结果与看板同一套规则：每周最后一个交易日收盘出信号，5 分缓冲（新入选者必须比被替换的在位者高出 5 分以上），下一交易日开盘价成交。名单等权。基准是沪深300ETF（510300）买入持有，以及池内已有行情的 ETF 等权、在每月最后一个交易日收盘后于下一交易日开盘再平衡。</p>
+<p class="mute" id="btMeta">加载中…</p>
+<div id="btCharts" hidden>
+<h3>净值</h3>
+<div class="chart-box" id="navBox"></div>
+<h3>回撤</h3>
+<div class="chart-box" id="ddBox"></div>
+<p class="mute">年化收益按期末净值复利、252 个交易日折算。年化波动是日收益样本标准差乘以 √252。夏普是（日收益均值减 2%/252）除以日收益样本标准差，再乘 √252。卡玛是年化收益除以最大回撤绝对值。周胜率是周收益为正的周数占比。年换手是各次调仓买入额除以调仓前权益之和，再除以年数，包含首次建仓。最大回撤从前期高点量到其后的低点。</p>
+</div>
+</div>
+<div class="wrap bt" id="btMetricsWrap" hidden><table id="btMetrics"><thead><tr><th>指标</th><th>八友轮动</th><th>沪深300ETF</th><th>池内等权</th></tr></thead><tbody></tbody></table></div>
+<div class="card" id="btYearCard" hidden><h2>年度收益</h2><div class="mute">年初未覆盖或年末未结束的年份在「样本」列注明。收益从该年样本内的起点净值算到该年最后一个交易日。</div></div>
+<div class="wrap bt" id="btYearWrap" hidden><table id="btYear"><thead><tr><th>年份</th><th>八友轮动</th><th>沪深300ETF</th><th>池内等权</th><th>样本</th></tr></thead><tbody></tbody></table></div>
+<div class="card" id="btSensCard" hidden>
+<h2>样本内敏感性</h2>
+<div class="mute">缓冲取 0、5、10 分，调仓频率取每周和双周。这两组对照与主回测使用同一段历史行情，是样本内结果。实盘仍按每周调仓、5 分缓冲执行。双周从样本内第一个有效周末信号起，取第 1、3、5… 次信号，中间那个周末不调仓；相位跟这段样本的起点绑定。</div>
+</div>
+<div class="wrap bt" id="btSensWrap" hidden><table id="btSens"><thead><tr><th>缓冲</th><th>频率</th><th>年化收益</th><th>年化波动</th><th>最大回撤</th><th>夏普</th><th>卡玛</th><th>周胜率</th><th>年换手</th></tr></thead><tbody></tbody></table></div>
 <div class="card mute" id="rule"></div>
 <footer>仅为个人研究工具，不构成投资建议</footer>
 </div>
@@ -91,5 +125,87 @@ const O=d.official||{},RB=d.rebalance||{};document.getElementById("rb").innerHTM
 document.getElementById("cand").innerHTML=(d.cand_codes||[]).map(c=>`<span data-c="${c}">${nm(c)}</span>`).join("");
 document.getElementById("rule").innerHTML="<b>得分规则</b>　"+d.rule+"。百分位为在本池内的相对排名（0=最弱，100=最强）；超额=ETF涨幅−沪深300涨幅；正式八友按调仓日得分取前"+d.top_n+"名并经缓冲；表中得分为最新交易日。";render()})
 .catch(e=>document.getElementById("meta").textContent="数据加载失败："+e);
+const BT_COLOR={strategy:"#7fa7d9",hs300:"#c8c8cc",equal:"#e0b15f"};
+function pctHtml(v){if(v==null||Number.isNaN(v))return "—";const x=Number(v)*100;const cls=x>0?"p":x<0?"n":"";return `<span class="${cls}">${x>0?"+":""}${x.toFixed(2)}%</span>`}
+function pctPlain(v){if(v==null||Number.isNaN(Number(v)))return "—";return (Number(v)*100).toFixed(2)+"%"}
+function numHtml(v){if(v==null||Number.isNaN(v))return "—";const x=Number(v);const cls=x>0?"p":x<0?"n":"";return `<span class="${cls}">${x>0?"+":""}${x.toFixed(2)}</span>`}
+function winHtml(s){if(!s||s.weekly_win_rate==null)return "—";return (s.weekly_win_rate*100).toFixed(2)+"%（"+s.weekly_wins+"/"+s.weekly_count+"）"}
+function mountChart(box,dates,series,mode){
+box.replaceChildren();
+const W=720,H=228,pl=54,pr=12,pt=16,pb=28,n=dates.length;
+const all=series.flatMap(s=>s.values);
+let ymin=Math.min(...all),ymax=Math.max(...all);
+if(mode==="dd"){ymax=0;if(ymin>=0)ymin=-0.01}else if(ymin===ymax){ymin-=0.05;ymax+=0.05}
+const span=ymax-ymin||1;
+if(mode==="dd")ymin-=Math.abs(ymin)*0.08;else{ymin-=span*0.06;ymax+=span*0.08}
+const X=i=>pl+(n<=1?0:i/(n-1))*(W-pl-pr);
+const Y=v=>pt+(ymax-v)/(ymax-ymin)*(H-pt-pb);
+const fmt=mode==="dd"?v=>(v*100).toFixed(1)+"%":v=>Number(v).toFixed(3);
+const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.setAttribute("class","chart");svg.setAttribute("role","img");
+svg.setAttribute("aria-label",(mode==="dd"?"回撤 ":"净值 ")+series.map(s=>s.name).join("、"));
+const el=(name,attrs)=>{const node=document.createElementNS("http://www.w3.org/2000/svg",name);Object.entries(attrs).forEach(([k,val])=>node.setAttribute(k,val));svg.appendChild(node);return node};
+for(let t=0;t<4;t++){const val=ymin+(ymax-ymin)*t/3;const y=Y(val);el("line",{x1:pl,x2:W-pr,y1:y,y2:y,stroke:"rgba(237,237,237,.08)"});const label=el("text",{x:pl-8,y:y+4,"text-anchor":"end",fill:"#85858b","font-size":"11","font-family":"ui-monospace,monospace"});label.textContent=fmt(val)}
+[0,Math.floor((n-1)/2),n-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(i=>{const label=el("text",{x:X(i),y:H-8,"text-anchor":i===0?"start":i===n-1?"end":"middle",fill:"#85858b","font-size":"11","font-family":"ui-monospace,monospace"});label.textContent=dates[i]});
+series.forEach(s=>{el("polyline",{fill:"none",stroke:s.color,"stroke-width":"1.6","stroke-linejoin":"round","stroke-linecap":"round",points:s.values.map((v,i)=>X(i).toFixed(2)+","+Y(v).toFixed(2)).join(" ")})});
+const rule=el("line",{y1:pt,y2:H-pb,stroke:"rgba(237,237,237,.45)","stroke-width":"1",visibility:"hidden"});
+const readout=document.createElement("div");readout.className="readout";readout.textContent="在图上移动查看当日数值";
+const legend=document.createElement("div");legend.className="legend";
+series.forEach(s=>{const item=document.createElement("span");const mark=document.createElement("i");mark.className="swatch";mark.style.background=s.color;item.append(mark,document.createTextNode(s.name+" "+fmt(s.values[n-1])));legend.appendChild(item)});
+svg.addEventListener("pointermove",ev=>{const rect=svg.getBoundingClientRect();const x=(ev.clientX-rect.left)/rect.width*W;let i=n<=1?0:Math.round((x-pl)/(W-pl-pr)*(n-1));i=Math.max(0,Math.min(n-1,i));const xx=X(i);rule.setAttribute("x1",xx);rule.setAttribute("x2",xx);rule.setAttribute("visibility","visible");readout.textContent=dates[i]+"  "+series.map(s=>s.name+" "+fmt(s.values[i])).join("   ")});
+svg.addEventListener("pointerleave",()=>{rule.setAttribute("visibility","hidden");readout.textContent="在图上移动查看当日数值"});
+box.append(svg,readout,legend)}
+function renderBacktest(d){
+const show=id=>{document.getElementById(id).hidden=false};
+["btCharts","btMetricsWrap","btYearCard","btYearWrap","btSensCard","btSensWrap"].forEach(show);
+const cov=d.coverage||{},m=d.metrics||{};
+const src={};(cov.symbols||[]).forEach(s=>{const k=s.source||"无";src[k]=(src[k]||0)+1});
+const gaps=(cov.symbols||[]).filter(s=>s.interior_gaps||s.off_calendar||s.bad_ticks);
+const late=(cov.symbols||[]).filter(s=>s.role==="pool"&&s.first>cov.price_start);
+const badAdj=(cov.symbols||[]).filter(s=>s.adjust&&s.adjust!=="qfq");
+const lines=[
+`行情 ${cov.price_start||"—"} 至 ${cov.price_end||"—"}。回测 ${cov.backtest_start||"—"} 至 ${cov.backtest_end||"—"}，首次开盘成交 ${cov.first_execution||"—"}。`,
+`生成于 ${d.generated_at||"—"}（北京时间）。数据源 ${Object.entries(src).map(([k,v])=>k+" "+v).join("、")||"—"}。`,
+`打分用沪深300指数，收益基准是沪深300ETF。首个信号日可打分 ${cov.eligible_on_first_signal??"—"} 只，最后信号日可打分 ${cov.eligible_on_last_signal??"—"} 只。模拟从现金起步，不读取正式名单。`,
+];
+if((cov.failed||[]).length)lines.push("没有日线、未进入回测："+cov.failed.map(x=>x.name+" "+x.code).join("、")+"。");
+else lines.push("池内代码都取到了日线。");
+if(!gaps.length)lines.push("各代码在自身首根与末根日线之间，没有相对沪深300指数交易日的内部缺口。");
+else lines.push("内部缺口："+gaps.map(s=>s.name+" "+s.code+" 缺"+s.interior_gaps+"天"+(s.gap_examples&&s.gap_examples.length?"（"+s.gap_examples.slice(0,3).join("、")+"）":"")).join("；")+"。");
+if(late.length)lines.push("首根日线晚于行情起点，此前不参与："+late.map(s=>s.name+" "+s.code+" 自"+s.first).join("；")+"。");
+if(badAdj.length)lines.push("以下标的没有确认到前复权："+badAdj.map(s=>s.name+" "+s.code+"（"+s.note+"）").join("；")+"。");
+else lines.push("使用的价格都是前复权，缺失交易日没有插值。");
+if(cov.trade_skip_count)lines.push("有 "+cov.trade_skip_count+" 次计划成交缺少开盘价，该腿没有成交。");
+if(cov.carried_marks)lines.push("无收盘价的交易日沿用该标的最近一笔真实成交价计价 "+cov.carried_marks+" 次，没有补出新价格。");
+if(cov.pending_signal)lines.push("最近一个周末信号 "+cov.pending_signal+" 还没有下一交易日的开盘价，这次调仓尚未计入净值。");
+const sc=cov.score_check||{};
+if(sc.status==="ok")lines.push("回测打分与看板数据日 "+sc.data_date+" 的得分一致。");
+else if(sc.status==="snapshot_diff")lines.push("与已保存的看板快照相比，"+sc.mismatches.length+" 只在数据日 "+(sc.data_date||"")+" 的得分不同，最大相差 "+sc.max_abs_diff+" 分。前复权会在除权后改写历史收盘，快照存盘之后再下载就会这样。本次打分函数与看板相同。");
+document.getElementById("btMeta").textContent=lines.join("\n");
+const byId={};(d.curves.series||[]).forEach(s=>{byId[s.id]=s});
+const navSeries=["strategy","hs300","equal"].filter(id=>byId[id]).map(id=>({name:byId[id].name,color:BT_COLOR[id],values:byId[id].nav}));
+const dates=d.curves.dates||[];
+mountChart(document.getElementById("navBox"),dates,navSeries,"nav");
+mountChart(document.getElementById("ddBox"),dates,navSeries.map(s=>{let peak=s.values[0];return {name:s.name,color:s.color,values:s.values.map(v=>{if(v>peak)peak=v;return peak?v/peak-1:0})}}),"dd");
+const order=[["strategy","八友轮动"],["hs300","沪深300ETF"],["equal","池内等权"]];
+const metricRows=[
+["年化收益",s=>pctHtml(s.ann_return)],
+["年化波动",s=>pctPlain(s.ann_vol)],
+["最大回撤",s=>pctHtml(s.max_drawdown)],
+["回撤高点",s=>esc(s.dd_peak||"—")],
+["回撤低点",s=>esc(s.dd_trough||"—")],
+["回撤收回",s=>esc(s.dd_recovery||(s.max_drawdown<0?"截至样本结束尚未收回":"—"))],
+["夏普",s=>numHtml(s.sharpe)],
+["卡玛",s=>numHtml(s.calmar)],
+["周胜率",s=>winHtml(s)],
+["跑赢沪深300ETF的周占比",s=>s.weekly_beat_hs300==null?"—":pctHtml(s.weekly_beat_hs300)],
+["年换手",s=>s.annual_turnover==null?"—":Number(s.annual_turnover).toFixed(2)+"倍"],
+["期末净值",s=>s.end_nav==null?"—":Number(s.end_nav).toFixed(3)],
+];
+document.querySelector("#btMetrics tbody").innerHTML=metricRows.map(([name,fn])=>`<tr><td>${name}</td>${order.map(([id])=>`<td>${m[id]?fn(m[id]):"—"}</td>`).join("")}</tr>`).join("");
+document.querySelector("#btYear tbody").innerHTML=(d.yearly||[]).map(r=>`<tr><td>${r.year}</td><td>${pctHtml(r.strategy)}</td><td>${pctHtml(r.hs300)}</td><td>${pctHtml(r.equal)}</td><td>${esc(r.note||"")}</td></tr>`).join("")||'<tr><td colspan="5">无</td></tr>';
+document.querySelector("#btSens tbody").innerHTML=((d.sensitivity||{}).rows||[]).map(r=>`<tr class="${r.live?"live":""}"><td>${r.buffer} 分</td><td>${esc(r.freq_label)}${r.live?" · 实盘":""}</td><td>${pctHtml(r.ann_return)}</td><td>${pctPlain(r.ann_vol)}</td><td>${pctHtml(r.max_drawdown)}</td><td>${numHtml(r.sharpe)}</td><td>${numHtml(r.calmar)}</td><td>${winHtml(r)}</td><td>${r.annual_turnover==null?"—":Number(r.annual_turnover).toFixed(2)+"倍"}</td></tr>`).join("");
+}
+fetch("data/backtest.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(String(r.status));return r.json()}).then(renderBacktest).catch(e=>{document.getElementById("btMeta").textContent="历史回测还没有生成，或加载失败："+(e.message||e)});
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
 </script></body></html>
