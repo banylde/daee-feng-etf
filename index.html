@@ -100,6 +100,11 @@ tr.live td{background:rgba(127,167,217,.12)}
 <div class="mute">缓冲取 0、5、10 分，调仓频率取每周和双周。这两组对照与主回测使用同一段历史行情，是样本内结果。实盘仍按每周调仓、5 分缓冲执行。双周从样本内第一个有效周末信号起，取第 1、3、5… 次信号，中间那个周末不调仓；相位跟这段样本的起点绑定。</div>
 </div>
 <div class="wrap bt" id="btSensWrap" hidden><table id="btSens"><thead><tr><th>缓冲</th><th>频率</th><th>年化收益</th><th>年化波动</th><th>最大回撤</th><th>夏普</th><th>卡玛</th><th>周胜率</th><th>年换手</th></tr></thead><tbody></tbody></table></div>
+<div class="card" id="btTurnCard" hidden>
+<h2>降换手对照</h2>
+<div class="mute">样本内对照，可能过拟合。除最后两行外每一行只改一项；最后两行是事先写定的组合（缓冲 15 叠加双周，排名带叠加最短持有 4 周）。实盘仍按每周调仓、5 分缓冲执行。年化（费前）用同一套名单和开盘价、把佣金与滑点设为 0 重算。成本拖累 = 费前年化 − 费后年化。最大回撤、夏普、卡玛、年换手按费后净值。两段分别是样本起点至 2023 年末，以及从 2023 年末净值到样本终点。</div>
+</div>
+<div class="wrap bt" id="btTurnWrap" hidden><table id="btTurn"><thead><tr><th>方案</th><th>年化费后</th><th>年化费前</th><th>成本拖累</th><th>最大回撤</th><th>夏普</th><th>卡玛</th><th>年换手</th><th>2021-09~2023-12年化</th><th>该段回撤</th><th>2024-01~2026-11年化</th><th>该段回撤</th></tr></thead><tbody></tbody></table></div>
 <div class="card mute" id="rule"></div>
 <footer>仅为个人研究工具，不构成投资建议</footer>
 </div>
@@ -157,7 +162,7 @@ svg.addEventListener("pointerleave",()=>{rule.setAttribute("visibility","hidden"
 box.append(svg,readout,legend)}
 function renderBacktest(d){
 const show=id=>{document.getElementById(id).hidden=false};
-["btCharts","btMetricsWrap","btYearCard","btYearWrap","btSensCard","btSensWrap"].forEach(show);
+["btCharts","btMetricsWrap","btYearCard","btYearWrap","btSensCard","btSensWrap","btTurnCard","btTurnWrap"].forEach(show);
 const cov=d.coverage||{},m=d.metrics||{};
 const src={};(cov.symbols||[]).forEach(s=>{const k=s.source||"无";src[k]=(src[k]||0)+1});
 const gaps=(cov.symbols||[]).filter(s=>s.interior_gaps||s.off_calendar||s.bad_ticks);
@@ -205,6 +210,9 @@ const metricRows=[
 document.querySelector("#btMetrics tbody").innerHTML=metricRows.map(([name,fn])=>`<tr><td>${name}</td>${order.map(([id])=>`<td>${m[id]?fn(m[id]):"—"}</td>`).join("")}</tr>`).join("");
 document.querySelector("#btYear tbody").innerHTML=(d.yearly||[]).map(r=>`<tr><td>${r.year}</td><td>${pctHtml(r.strategy)}</td><td>${pctHtml(r.hs300)}</td><td>${pctHtml(r.equal)}</td><td>${esc(r.note||"")}</td></tr>`).join("")||'<tr><td colspan="5">无</td></tr>';
 document.querySelector("#btSens tbody").innerHTML=((d.sensitivity||{}).rows||[]).map(r=>`<tr class="${r.live?"live":""}"><td>${r.buffer} 分</td><td>${esc(r.freq_label)}${r.live?" · 实盘":""}</td><td>${pctHtml(r.ann_return)}</td><td>${pctPlain(r.ann_vol)}</td><td>${pctHtml(r.max_drawdown)}</td><td>${numHtml(r.sharpe)}</td><td>${numHtml(r.calmar)}</td><td>${winHtml(r)}</td><td>${r.annual_turnover==null?"—":Number(r.annual_turnover).toFixed(2)+"倍"}</td></tr>`).join("");
+const turnRows=((d.low_turnover||{}).rows||[]);
+const period=(r,id)=>{const p=(r.periods||[]).find(x=>x.id===id);return p||{}};
+document.querySelector("#btTurn tbody").innerHTML=turnRows.length?turnRows.map(r=>{const e=period(r,"early"),l=period(r,"late");return `<tr class="${r.live?"live":""}"><td>${esc(r.label)}${r.live?" · 实盘":""}</td><td>${pctHtml(r.ann_return_net)}</td><td>${pctHtml(r.ann_return_gross)}</td><td>${pctPlain(r.cost_drag)}</td><td>${pctHtml(r.max_drawdown)}</td><td>${numHtml(r.sharpe)}</td><td>${numHtml(r.calmar)}</td><td>${r.annual_turnover==null?"—":Number(r.annual_turnover).toFixed(2)+"倍"}</td><td>${pctHtml(e.ann_return)}</td><td>${pctHtml(e.max_drawdown)}</td><td>${pctHtml(l.ann_return)}</td><td>${pctHtml(l.max_drawdown)}</td></tr>`}).join(""):'<tr><td colspan="12">降换手对照还没有生成</td></tr>';
 }
 fetch("data/backtest.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(String(r.status));return r.json()}).then(renderBacktest).catch(e=>{document.getElementById("btMeta").textContent="历史回测还没有生成，或加载失败："+(e.message||e)});
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");

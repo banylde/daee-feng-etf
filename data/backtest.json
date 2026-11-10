@@ -1,6 +1,6 @@
 {
  "disclaimer": "回测不代表未来收益",
- "generated_at": "2026-11-10 07:18",
+ "generated_at": "2026-11-10 09:18",
  "in_sample": true,
  "sample_note": "主回测与缓冲、频率对照使用同一段历史行情，同属样本内计算。对照只展示这两项设定变化时指标如何变动。实盘规则保持每周调仓、5分缓冲。",
  "biweekly_note": "双周从样本内第一个有效周末信号起，取第 1、3、5… 次信号调仓，中间那个周末不调仓。相位跟这段样本的起点绑定。",
@@ -5862,6 +5862,487 @@
     "end_nav": 1.104227,
     "rebalance_count": 132,
     "total_return": 0.104227
+   }
+  ]
+ },
+ "low_turnover": {
+  "note": "降换手对照是样本内结果，可能过拟合。除最后两行外，每一行只改一项。最后两行是事先写定的组合：缓冲15叠加双周，以及排名带叠加最短持有4周，不是跑完再挑的。实盘仍是每周调仓、5分缓冲。年化（费前）用同一套名单和同一开盘价，把佣金与滑点都设为0重算。成本拖累 = 费前年化 − 费后年化。最大回撤、夏普、卡玛、年换手按费后净值计算。最短持有按两个信号日相隔满28天才允许被替换。3周均分在不足3周时用已有周数，不补造得分。月频若在样本起点还没到月末，先持有现金，到当月最后一个交易日收盘才发第一笔信号。前一段从样本起点到2023年末，后一段从2023年末的净值到样本终点。",
+  "in_sample": true,
+  "may_overfit": true,
+  "cost_drag_def": "费前年化 − 费后年化",
+  "rows": [
+   {
+    "id": "live",
+    "label": "现行：缓冲5、每周",
+    "live": true,
+    "freq": "weekly",
+    "mode": "buffer",
+    "buffer": 5,
+    "changes": [],
+    "ann_return_net": 0.003464,
+    "ann_return_gross": 0.041577,
+    "cost_drag": 0.038113,
+    "max_drawdown": -0.420697,
+    "sharpe": 0.043311,
+    "calmar": 0.008234,
+    "annual_turnover": 14.413979,
+    "end_nav": 1.017175,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.151581,
+      "max_drawdown": -0.3332,
+      "dd_peak": "2021-09-22",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.147888,
+      "max_drawdown": -0.200622,
+      "dd_peak": "2026-06-30",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "buf10",
+    "label": "缓冲10",
+    "live": false,
+    "freq": "weekly",
+    "mode": "buffer",
+    "buffer": 10,
+    "changes": [
+     "buffer"
+    ],
+    "ann_return_net": 0.019463,
+    "ann_return_gross": 0.053341,
+    "cost_drag": 0.033878,
+    "max_drawdown": -0.395715,
+    "sharpe": 0.112081,
+    "calmar": 0.049184,
+    "annual_turnover": 12.653463,
+    "end_nav": 1.099577,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.138952,
+      "max_drawdown": -0.31243,
+      "dd_peak": "2021-09-22",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.167164,
+      "max_drawdown": -0.20121,
+      "dd_peak": "2026-06-30",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "buf15",
+    "label": "缓冲15",
+    "live": false,
+    "freq": "weekly",
+    "mode": "buffer",
+    "buffer": 15,
+    "changes": [
+     "buffer"
+    ],
+    "ann_return_net": 0.008706,
+    "ann_return_gross": 0.03861,
+    "cost_drag": 0.029904,
+    "max_drawdown": -0.397915,
+    "sharpe": 0.06471,
+    "calmar": 0.021878,
+    "annual_turnover": 11.319031,
+    "end_nav": 1.043611,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.13947,
+      "max_drawdown": -0.313334,
+      "dd_peak": "2021-09-22",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.145627,
+      "max_drawdown": -0.196584,
+      "dd_peak": "2026-06-30",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "buf20",
+    "label": "缓冲20",
+    "live": false,
+    "freq": "weekly",
+    "mode": "buffer",
+    "buffer": 20,
+    "changes": [
+     "buffer"
+    ],
+    "ann_return_net": 0.009865,
+    "ann_return_gross": 0.036441,
+    "cost_drag": 0.026576,
+    "max_drawdown": -0.398348,
+    "sharpe": 0.070849,
+    "calmar": 0.024764,
+    "annual_turnover": 10.075749,
+    "end_nav": 1.049529,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.132971,
+      "max_drawdown": -0.301925,
+      "dd_peak": "2021-09-22",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.141101,
+      "max_drawdown": -0.206615,
+      "dd_peak": "2026-05-25",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "biweekly",
+    "label": "双周",
+    "live": false,
+    "freq": "biweekly",
+    "mode": "buffer",
+    "buffer": 5,
+    "changes": [
+     "freq"
+    ],
+    "ann_return_net": 0.01035,
+    "ann_return_gross": 0.037046,
+    "cost_drag": 0.026696,
+    "max_drawdown": -0.359453,
+    "sharpe": 0.07294,
+    "calmar": 0.028795,
+    "annual_turnover": 10.113282,
+    "end_nav": 1.052017,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.086,
+      "max_drawdown": -0.228424,
+      "dd_peak": "2023-04-07",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.094821,
+      "max_drawdown": -0.225044,
+      "dd_peak": "2024-03-08",
+      "dd_trough": "2024-09-09",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "monthly",
+    "label": "月",
+    "live": false,
+    "freq": "monthly",
+    "mode": "buffer",
+    "buffer": 5,
+    "changes": [
+     "freq"
+    ],
+    "ann_return_net": -0.018603,
+    "ann_return_gross": -0.000761,
+    "cost_drag": 0.017843,
+    "max_drawdown": -0.432507,
+    "sharpe": -0.058678,
+    "calmar": -0.043013,
+    "annual_turnover": 7.016819,
+    "end_nav": 0.91167,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.181119,
+      "max_drawdown": -0.367579,
+      "dd_peak": "2021-09-30",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.13458,
+      "max_drawdown": -0.267715,
+      "dd_peak": "2026-06-30",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "rank_band",
+    "label": "排名带：前8买、跌出前16卖",
+    "live": false,
+    "freq": "weekly",
+    "mode": "rank_band",
+    "buffer": null,
+    "changes": [
+     "rank_band"
+    ],
+    "ann_return_net": -0.009188,
+    "ann_return_gross": 0.01081,
+    "cost_drag": 0.019998,
+    "max_drawdown": -0.409315,
+    "sharpe": -0.012541,
+    "calmar": -0.022447,
+    "annual_turnover": 7.774468,
+    "end_nav": 0.955562,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.142606,
+      "max_drawdown": -0.318805,
+      "dd_peak": "2021-09-22",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.112533,
+      "max_drawdown": -0.219519,
+      "dd_peak": "2026-06-30",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "min_hold",
+    "label": "最短持有4周",
+    "live": false,
+    "freq": "weekly",
+    "mode": "min_hold",
+    "buffer": 5,
+    "changes": [
+     "min_hold"
+    ],
+    "ann_return_net": 0.019698,
+    "ann_return_gross": 0.047404,
+    "cost_drag": 0.027706,
+    "max_drawdown": -0.35916,
+    "sharpe": 0.112197,
+    "calmar": 0.054844,
+    "annual_turnover": 10.395299,
+    "end_nav": 1.100826,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.124363,
+      "max_drawdown": -0.285447,
+      "dd_peak": "2021-09-22",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.152036,
+      "max_drawdown": -0.236616,
+      "dd_peak": "2026-05-25",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "smooth",
+    "label": "3周均分",
+    "live": false,
+    "freq": "weekly",
+    "mode": "smooth",
+    "buffer": 5,
+    "changes": [
+     "smooth"
+    ],
+    "ann_return_net": -0.010038,
+    "ann_return_gross": 0.013372,
+    "cost_drag": 0.02341,
+    "max_drawdown": -0.411538,
+    "sharpe": -0.018639,
+    "calmar": -0.024391,
+    "annual_turnover": 9.076382,
+    "end_nav": 0.951532,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.134848,
+      "max_drawdown": -0.304644,
+      "dd_peak": "2021-09-22",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.102827,
+      "max_drawdown": -0.220605,
+      "dd_peak": "2026-06-30",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "combo_buf_biweek",
+    "label": "组合：缓冲15 + 双周",
+    "live": false,
+    "freq": "biweekly",
+    "mode": "buffer",
+    "buffer": 15,
+    "changes": [
+     "freq",
+     "buffer"
+    ],
+    "ann_return_net": 0.040455,
+    "ann_return_gross": 0.06336,
+    "cost_drag": 0.022906,
+    "max_drawdown": -0.337359,
+    "sharpe": 0.200565,
+    "calmar": 0.119916,
+    "annual_turnover": 8.461896,
+    "end_nav": 1.215675,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.083178,
+      "max_drawdown": -0.231409,
+      "dd_peak": "2023-04-20",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.15143,
+      "max_drawdown": -0.196932,
+      "dd_peak": "2024-03-08",
+      "dd_trough": "2024-09-09",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
+   },
+   {
+    "id": "combo_band_hold",
+    "label": "组合：排名带 + 最短持有4周",
+    "live": false,
+    "freq": "weekly",
+    "mode": "band_hold",
+    "buffer": null,
+    "changes": [
+     "rank_band",
+     "min_hold"
+    ],
+    "ann_return_net": -0.025534,
+    "ann_return_gross": -0.008271,
+    "cost_drag": 0.017263,
+    "max_drawdown": -0.405952,
+    "sharpe": -0.090369,
+    "calmar": -0.0629,
+    "annual_turnover": 6.844441,
+    "end_nav": 0.880399,
+    "periods": [
+     {
+      "start": "2021-09-17",
+      "end": "2023-12-29",
+      "ann_return": -0.127843,
+      "max_drawdown": -0.295469,
+      "dd_peak": "2022-06-28",
+      "dd_trough": "2023-12-26",
+      "trading_days": 552,
+      "id": "early",
+      "label": "2021-09~2023-12"
+     },
+     {
+      "start": "2023-12-29",
+      "end": "2026-11-09",
+      "ann_return": 0.065025,
+      "max_drawdown": -0.231265,
+      "dd_peak": "2026-01-28",
+      "dd_trough": "2026-10-22",
+      "trading_days": 689,
+      "id": "late",
+      "label": "2024-01~2026-11"
+     }
+    ]
    }
   ]
  }
