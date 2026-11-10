@@ -199,6 +199,87 @@ def test_gaps_are_not_filled():
     assert backtest.interior_gaps(bars, calendar) == ["2024-01-03"]
 
 
+def test_rank_band_and_min_hold():
+    names = ["A", "B", "C", "D", "E"]
+    rows = [{"code": c, "name": c, "score": 50 - i} for i, c in enumerate(names)]
+    # 前 2 名买入；已持有的留在前 4 名里就不卖
+    assert backtest.choose_rank_band(rows, [], 2) == ["A", "B"]
+    assert backtest.choose_rank_band(rows, ["C", "D"], 2) == ["C", "D"]
+    assert backtest.choose_rank_band(rows, ["C", "E"], 2) == ["A", "C"]
+
+    entry = {"A": "2024-01-05", "B": "2024-01-05"}
+    challenger = [
+        {"code": "C", "name": "C", "score": 90},
+        {"code": "A", "name": "A", "score": 10},
+        {"code": "B", "name": "B", "score": 9},
+    ]
+    locked, _ = backtest.choose_min_hold(challenger, ["A", "B"], 2, 5, entry, "2024-01-26")
+    assert locked == ["A", "B"]
+    freed, entry2 = backtest.choose_min_hold(challenger, ["A", "B"], 2, 5, entry, "2024-02-02")
+    assert freed == ["C", "A"]
+    assert entry2["C"] == "2024-02-02" and entry2["A"] == "2024-01-05"
+    # 满 28 天后仍要严格高于缓冲
+    tie = [
+        {"code": "C", "name": "C", "score": 15},
+        {"code": "A", "name": "A", "score": 10},
+        {"code": "B", "name": "B", "score": 10},
+    ]
+    stayed, _ = backtest.choose_min_hold(tie, ["A", "B"], 2, 5, entry, "2024-02-02")
+    assert stayed == ["A", "B"]
+
+
+def test_smooth_scores_average_available_weeks():
+    rows = [
+        {"code": "A", "name": "A", "score": 30},
+        {"code": "B", "name": "B", "score": 90},
+    ]
+    history = [{"A": 10}, {"A": 20, "B": 0}]
+    smoothed, cur = backtest.smooth_scores(rows, history)
+    by = {r["code"]: r["score"] for r in smoothed}
+    assert by["A"] == 20
+    assert by["B"] == 45
+    assert cur == {"A": 30, "B": 90}
+    assert [r["code"] for r in smoothed] == ["B", "A"]
+
+
+def test_turnover_specs_change_one_knob():
+    specs = backtest.turnover_specs(8)
+    assert sum(1 for s in specs if s["live"]) == 1
+    assert specs[0]["id"] == "live"
+    singles = [s for s in specs if s["id"] not in ("combo_buf_biweek", "combo_band_hold") and not s["live"]]
+    combos = [s for s in specs if s["id"].startswith("combo_")]
+    assert len(combos) == 2
+    for s in singles:
+        assert backtest.variant_features(s) and len(backtest.variant_features(s)) == 1
+    for s in combos:
+        assert len(backtest.variant_features(s)) == 2
+    assert backtest.variant_features(specs[0]) == []
+    labels = [s["label"] for s in specs]
+    assert "缓冲10" in labels and "缓冲15" in labels and "缓冲20" in labels
+    assert "双周" in labels and "月" in labels and "最短持有4周" in labels and "3周均分" in labels
+
+
+def test_period_split_chains_and_cost_drag():
+    dates = ["2021-09-17", "2023-12-29", "2024-01-02", "2026-11-09"]
+    nav = [1.0, 0.8, 0.9, 1.2]
+    parts = backtest.split_periods(dates, nav)
+    assert [p["label"] for p in parts] == ["2021-09~2023-12", "2024-01~2026-11"]
+    assert parts[0]["end"] == "2023-12-29" and parts[1]["start"] == "2023-12-29"
+    early = 0.8 / 1.0
+    late = 1.2 / 0.8
+    assert abs(early * late - 1.2 / 1.0) < 1e-12
+    calendar = ["2024-01-05", "2024-01-08"]
+    opens = {"AAA": {"2024-01-08": 10.0}}
+    closes = {"AAA": {"2024-01-08": 10.0}}
+    execs = {"2024-01-08": ["AAA"]}
+    net = backtest.simulate(calendar, "2024-01-05", execs, opens, closes, 0.0013)
+    gross = backtest.simulate(calendar, "2024-01-05", execs, opens, closes, 0.0)
+    assert gross["nav"][-1] > net["nav"][-1]
+    metrics = backtest.eval_schedule(execs, calendar, "2024-01-05", opens, closes)
+    assert abs(metrics["cost_drag"] - (metrics["ann_return_gross"] - metrics["ann_return_net"])) < 1e-9
+    assert metrics["cost_drag"] > 0
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in tests:

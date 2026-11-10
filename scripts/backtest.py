@@ -622,6 +622,279 @@ def build_rotation(signals, score_at, names, top_n, buf, next_day):
     return execs, pending, sized
 
 
+MIN_HOLD_DAYS = 28
+EARLY_SPLIT = "2023-12-31"
+
+LOW_TURN_NOTE = (
+    "降换手对照是样本内结果，可能过拟合。"
+    "除最后两行外，每一行只改一项。最后两行是事先写定的组合：缓冲15叠加双周，以及排名带叠加最短持有4周，不是跑完再挑的。"
+    "实盘仍是每周调仓、5分缓冲。"
+    "年化（费前）用同一套名单和同一开盘价，把佣金与滑点都设为0重算。成本拖累 = 费前年化 − 费后年化。"
+    "最大回撤、夏普、卡玛、年换手按费后净值计算。"
+    "最短持有按两个信号日相隔满28天才允许被替换。3周均分在不足3周时用已有周数，不补造得分。"
+    "月频若在样本起点还没到月末，先持有现金，到当月最后一个交易日收盘才发第一笔信号。"
+    "前一段从样本起点到2023年末，后一段从2023年末的净值到样本终点。"
+)
+
+
+def signals_for(freq, week_ends, month_ends):
+    if freq == "weekly":
+        return list(week_ends)
+    if freq == "biweekly":
+        return list(week_ends)[::2]
+    if freq == "monthly":
+        first = week_ends[0]
+        return [d for d in month_ends if d >= first]
+    raise ValueError(freq)
+
+
+def smooth_scores(rows, history):
+    """当周得分与此前最多两周得分的平均。没有当周得分的代码不进入。缺周不补。"""
+    cur = {r["code"]: r["score"] for r in rows}
+    out = []
+    for r in rows:
+        vals = [cur[r["code"]]]
+        for past in history[-2:]:
+            if r["code"] in past:
+                vals.append(past[r["code"]])
+        out.append(dict(r, score=round(sum(vals) / float(len(vals)), 1)))
+    out.sort(key=lambda r: -r["score"])
+    return out, cur
+
+
+def choose_rank_band(rrows, prev_codes, top_n):
+    """前 top_n 名才买入；已持有的跌出前 2*top_n 才卖出。不用缓冲。"""
+    rank = {r["code"]: i + 1 for i, r in enumerate(rrows)}
+    sc = {r["code"]: r["score"] for r in rrows}
+    limit = top_n * 2
+    kept = [c for c in (prev_codes or []) if c in rank and rank[c] <= limit]
+    for r in rrows:
+        if len(kept) >= top_n:
+            break
+        if r["code"] not in kept and rank[r["code"]] <= top_n:
+            kept.append(r["code"])
+    kept.sort(key=lambda c: -sc[c])
+    return kept
+
+
+def held_long_enough(entry, code, signal, min_days):
+    ent = entry.get(code)
+    if not ent:
+        return True
+    return (dt.date.fromisoformat(signal) - dt.date.fromisoformat(ent)).days >= min_days
+
+
+def choose_min_hold(rrows, prev_codes, top_n, buf, entry, signal, min_days=MIN_HOLD_DAYS):
+    """现行缓冲规则，但未满 min_days 的在位者不能被替换。调仓日无得分的仍移出。"""
+    sc = {r["code"]: r["score"] for r in rrows}
+    kept = [c for c in (prev_codes or []) if c in sc]
+    for r in rrows:
+        if len(kept) >= top_n:
+            break
+        if r["code"] not in kept:
+            kept.append(r["code"])
+    for _ in range(top_n * 3):
+        ch = [r["code"] for r in rrows if r["code"] not in kept]
+        if not ch:
+            break
+        unlocked = [c for c in kept if held_long_enough(entry, c, signal, min_days)]
+        if not unlocked:
+            break
+        c = ch[0]
+        w = min(unlocked, key=lambda x: sc[x])
+        if sc[c] > sc[w] + buf:
+            kept[kept.index(w)] = c
+        else:
+            break
+    kept.sort(key=lambda c: -sc[c])
+    new_entry = {c: entry.get(c, signal) for c in kept}
+    return kept, new_entry
+
+
+def choose_band_hold(rrows, prev_codes, top_n, entry, signal, min_days=MIN_HOLD_DAYS):
+    """排名带，并且未满最短持有期的在位者即使跌出前 2N 也先留着。"""
+    rank = {r["code"]: i + 1 for i, r in enumerate(rrows)}
+    sc = {r["code"]: r["score"] for r in rrows}
+    limit = top_n * 2
+    kept = []
+    for c in (prev_codes or []):
+        if c not in rank:
+            continue
+        if rank[c] <= limit or not held_long_enough(entry, c, signal, min_days):
+            kept.append(c)
+    for r in rrows:
+        if len(kept) >= top_n:
+            break
+        if r["code"] not in kept and rank[r["code"]] <= top_n:
+            kept.append(r["code"])
+    kept.sort(key=lambda c: -sc[c])
+    new_entry = {c: entry.get(c, signal) for c in kept}
+    return kept, new_entry
+
+
+def turnover_specs(top_n):
+    """单因素对照，外加事先写定的两个组合。现行方案是缓冲 5、每周。"""
+    band = "排名带：前%d买、跌出前%d卖" % (top_n, top_n * 2)
+    return [
+        {"id": "live", "label": "现行：缓冲5、每周", "live": True, "freq": "weekly", "mode": "buffer", "buf": 5},
+        {"id": "buf10", "label": "缓冲10", "live": False, "freq": "weekly", "mode": "buffer", "buf": 10},
+        {"id": "buf15", "label": "缓冲15", "live": False, "freq": "weekly", "mode": "buffer", "buf": 15},
+        {"id": "buf20", "label": "缓冲20", "live": False, "freq": "weekly", "mode": "buffer", "buf": 20},
+        {"id": "biweekly", "label": "双周", "live": False, "freq": "biweekly", "mode": "buffer", "buf": 5},
+        {"id": "monthly", "label": "月", "live": False, "freq": "monthly", "mode": "buffer", "buf": 5},
+        {"id": "rank_band", "label": band, "live": False, "freq": "weekly", "mode": "rank_band"},
+        {"id": "min_hold", "label": "最短持有4周", "live": False, "freq": "weekly", "mode": "min_hold", "buf": 5},
+        {"id": "smooth", "label": "3周均分", "live": False, "freq": "weekly", "mode": "smooth", "buf": 5},
+        {"id": "combo_buf_biweek", "label": "组合：缓冲15 + 双周", "live": False, "freq": "biweekly", "mode": "buffer", "buf": 15},
+        {"id": "combo_band_hold", "label": "组合：排名带 + 最短持有4周", "live": False, "freq": "weekly", "mode": "band_hold"},
+    ]
+
+
+def variant_features(spec):
+    """相对现行方案（缓冲5、每周、当周得分、无排名带、无最短持有）改动了哪些旋钮。"""
+    changed = []
+    if spec["freq"] != "weekly":
+        changed.append("freq")
+    mode = spec["mode"]
+    if mode == "buffer" and spec.get("buf") != 5:
+        changed.append("buffer")
+    elif mode == "rank_band":
+        changed.append("rank_band")
+    elif mode == "min_hold":
+        changed.append("min_hold")
+    elif mode == "smooth":
+        changed.append("smooth")
+    elif mode == "band_hold":
+        changed.extend(["rank_band", "min_hold"])
+    return changed
+
+
+def build_schedule(signals, step, next_day):
+    prev, state, execs = [], {}, {}
+    pending = None
+    for sig in signals:
+        codes, state = step(sig, prev, state)
+        nxt = next_day.get(sig)
+        if not nxt:
+            pending = sig
+            break
+        execs[nxt] = list(codes)
+        prev = list(codes)
+    return execs, pending
+
+
+def make_step(spec, score_at, names, top_n):
+    mode = spec["mode"]
+    buf = spec.get("buf", 5)
+
+    def step(sig, prev, state):
+        rows = score_at(sig)
+        if mode == "buffer":
+            codes, _, _ = fetch.choose_codes(rows, prev, top_n, buf, names)
+            return codes, state
+        if mode == "smooth":
+            hist = state.get("hist") or []
+            smoothed, cur = smooth_scores(rows, hist)
+            codes, _, _ = fetch.choose_codes(smoothed, prev, top_n, buf, names)
+            return codes, {"hist": hist + [cur]}
+        if mode == "rank_band":
+            return choose_rank_band(rows, prev, top_n), state
+        if mode == "min_hold":
+            entry = state.get("entry") or {}
+            codes, entry = choose_min_hold(rows, prev, top_n, buf, entry, sig)
+            return codes, {"entry": entry}
+        if mode == "band_hold":
+            entry = state.get("entry") or {}
+            codes, entry = choose_band_hold(rows, prev, top_n, entry, sig)
+            return codes, {"entry": entry}
+        raise ValueError(mode)
+
+    return step
+
+
+def slice_nav(dates, nav, d0, d1):
+    idxs = [i for i, d in enumerate(dates) if d0 <= d <= d1]
+    if len(idxs) < 2:
+        return None
+    sl_d = dates[idxs[0]:idxs[-1] + 1]
+    sl_n = nav[idxs[0]:idxs[-1] + 1]
+    st = performance_stats(sl_d, sl_n, [])
+    return {
+        "start": sl_d[0], "end": sl_d[-1],
+        "ann_return": r6(st["ann_return"]),
+        "max_drawdown": r6(st["max_drawdown"]),
+        "dd_peak": st["dd_peak"], "dd_trough": st["dd_trough"],
+        "trading_days": st["trading_days"],
+    }
+
+
+def split_periods(dates, nav):
+    early_dates = [d for d in dates if d <= EARLY_SPLIT]
+    if not early_dates:
+        return []
+    boundary = early_dates[-1]
+    early = slice_nav(dates, nav, dates[0], boundary)
+    late = slice_nav(dates, nav, boundary, dates[-1])
+    if early:
+        early["id"] = "early"
+        early["label"] = "2021-09~2023-12"
+    if late:
+        late["id"] = "late"
+        late["label"] = "2024-01~2026-11"
+    return [p for p in (early, late) if p]
+
+
+def eval_schedule(execs, calendar, start, opens, closes):
+    sim_net = simulate(calendar, start, execs, opens, closes, ONE_WAY_COST)
+    sim_gross = simulate(calendar, start, execs, opens, closes, 0.0)
+    if sim_net["dates"] != sim_gross["dates"]:
+        raise RuntimeError("费前费后日期不一致")
+    nav_net = [round(v, 6) for v in sim_net["nav"]]
+    nav_gross = [round(v, 6) for v in sim_gross["nav"]]
+    st_net = performance_stats(sim_net["dates"], nav_net, sim_net["turnovers"])
+    st_gross = performance_stats(sim_gross["dates"], nav_gross, sim_gross["turnovers"])
+    net_ann, gross_ann = st_net["ann_return"], st_gross["ann_return"]
+    drag = None if net_ann is None or gross_ann is None else gross_ann - net_ann
+    return {
+        "ann_return_net": r6(net_ann),
+        "ann_return_gross": r6(gross_ann),
+        "cost_drag": r6(drag),
+        "max_drawdown": r6(st_net["max_drawdown"]),
+        "sharpe": r6(st_net["sharpe"]),
+        "calmar": r6(st_net["calmar"]),
+        "annual_turnover": r6(st_net["annual_turnover"]),
+        "end_nav": r6(st_net["end_nav"]),
+        "periods": split_periods(sim_net["dates"], nav_net),
+    }
+
+
+def build_low_turnover(score_at, names, top_n, week_ends, month_ends, next_day, calendar, opens, closes, stats_live):
+    rows = []
+    for spec in turnover_specs(top_n):
+        signals = signals_for(spec["freq"], week_ends, month_ends)
+        execs, _ = build_schedule(signals, make_step(spec, score_at, names, top_n), next_day)
+        metrics = eval_schedule(execs, calendar, week_ends[0], opens, closes)
+        rows.append({
+            "id": spec["id"], "label": spec["label"], "live": spec["live"],
+            "freq": spec["freq"], "mode": spec["mode"], "buffer": spec.get("buf"),
+            "changes": variant_features(spec),
+            **metrics,
+        })
+    live = rows[0]
+    for key in ("ann_return_net", "max_drawdown", "annual_turnover", "sharpe", "calmar"):
+        got = live[key]
+        ref = r6(stats_live[{"ann_return_net": "ann_return"}.get(key, key)])
+        if got != ref:
+            raise SystemExit("现行方案与主回测不一致 %s: %s vs %s" % (key, got, ref))
+    return {
+        "note": LOW_TURN_NOTE,
+        "in_sample": True,
+        "may_overfit": True,
+        "cost_drag_def": "费前年化 − 费后年化",
+        "rows": rows,
+    }
+
+
 def main():
     cfg = json.load(open(os.path.join(ROOT, "etfs.json"), encoding="utf-8"))
     rc = json.load(open(os.path.join(ROOT, "config.json"), encoding="utf-8"))
@@ -883,6 +1156,8 @@ def main():
         "hs300": round_stats(stats_b),
         "equal": round_stats(stats_e, beat_e),
     }
+    low_turnover = build_low_turnover(
+        score_at, names, top_n, week_ends, month_ends, next_day, calendar, opens, closes, stats_s)
 
     out = {
         "disclaimer": DISCLAIMER,
@@ -932,6 +1207,7 @@ def main():
         "metrics": metrics,
         "yearly": yearly,
         "sensitivity": {"note": SAMPLE_NOTE, "biweekly_note": BIWEEKLY_NOTE, "rows": sens_rows},
+        "low_turnover": low_turnover,
     }
     for series in (nav_s, nav_b, nav_e):
         if any(v != v or v <= 0 for v in series):
@@ -998,6 +1274,30 @@ def print_report(out):
         print("较晚进入 %s %s 首根 %s" % (s["code"], s["name"], s["first"]))
     print("跳过成交 %s 笔，沿用最近价格计价 %s 次" % (cov["trade_skip_count"], cov["carried_marks"]))
     print("打分对照", cov["score_check"])
+    lt = out.get("low_turnover") or {}
+    if lt.get("rows"):
+        print(lt.get("note"))
+        print("| 方案 | 年化费后 | 年化费前 | 成本拖累 | 最大回撤 | 夏普 | 卡玛 | 年换手 | 2021-09~2023-12年化 | 该段回撤 | 2024-01~2026-11年化 | 该段回撤 |")
+        print("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+
+        def pct(x):
+            return "—" if x is None else "%+.2f%%" % (x * 100)
+
+        def n(x):
+            return "—" if x is None else "%+.2f" % x
+
+        def turn(x):
+            return "—" if x is None else "%.2f" % x
+
+        for r in lt["rows"]:
+            periods = {p["id"]: p for p in r.get("periods") or []}
+            early, late = periods.get("early") or {}, periods.get("late") or {}
+            print("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+                r["label"], pct(r["ann_return_net"]), pct(r["ann_return_gross"]), pct(r["cost_drag"]),
+                pct(r["max_drawdown"]), n(r["sharpe"]), n(r["calmar"]), turn(r["annual_turnover"]),
+                pct(early.get("ann_return")), pct(early.get("max_drawdown")),
+                pct(late.get("ann_return")), pct(late.get("max_drawdown")),
+            ))
 
 
 if __name__ == "__main__":
