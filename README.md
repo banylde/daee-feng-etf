@@ -16,6 +16,7 @@
 - `.github/workflows/update.yml`：周一至周五北京时间 15:40 自动运行（也可在 Actions 页手动 Run workflow）
 - `.github/workflows/backtest.yml`：每月 1 日北京时间 16:40 跑历史回测，也可在 Actions 页手动运行。不随每日抓数执行
 - `index.html` / `manifest.webmanifest` / `sw.js` / `icons/`：前端与 PWA
+- `vendor/lightweight-charts/`：TradingView Lightweight Charts™ 5.3.0 的 standalone 构建（Apache-2.0，含 `LICENSE` 与 `NOTICE`）。页面本地引入，不在运行时请求 CDN
 
 ## 数据源
 腾讯财经日K（前复权）为主；失败时依次回退东方财富（前复权）、新浪（不复权）。均为免费公开接口，可能变更或限流；失败的代码会显示在页面顶部，主源失败后改走备用的代码写入 `latest.json` 的 `fallbacks`。
@@ -58,6 +59,8 @@
 「降换手对照」写在 `data/backtest.json` 的 `low_turnover`。每一行只改一项：缓冲 5/10/15/20、频率周/双周/月、排名带（前 8 买、跌出前 16 卖）、最短持有 4 周、3 周均分。另有两行事先写定的组合：缓冲 15 叠加双周，排名带叠加最短持有 4 周。费前净值是同一套名单和开盘价、佣金与滑点都按 0 重算。这张表是样本内结果，可能过拟合。实盘规则不变。
 
 页面「历史回测」读取 `data/backtest.json`，画出净值和回撤，并列出指标、年度收益和敏感性。页头写明：**回测不代表未来收益**。
+
+净值曲线和回撤曲线用 TradingView Lightweight Charts™ 5.3.0 绘制（Apache-2.0，文件在 `vendor/lightweight-charts/`）。横轴和数值仍来自 `curves` 里的日期与净值，系列是八友轮动、沪深300ETF 买入持有、池内等权月度再平衡。脚本打不开，或图表初始化失败时，页面改回原来的 SVG，并写一句「图表库不可用，已改用页面内置的曲线。」
 
 ## 修改ETF池
 编辑 `etfs.json` 的 `etfs` 数组：`code`（6位代码）、`market`（`sh` 上交所 / `sz` 深交所）、`name`、`sector`。提交后在 Actions 手动运行一次即可刷新。本地：`python3 scripts/fetch.py`。
