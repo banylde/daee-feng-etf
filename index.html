@@ -64,6 +64,8 @@ tbody tr:hover td{background:var(--raised)}
 tr.live td{background:rgba(127,167,217,.12)}
 .chart-box{background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:8px 8px 12px;margin:8px 0 0}
 .chart{width:100%;height:auto;display:block;touch-action:pan-y}
+.lw-host{position:relative;width:100%;height:228px;touch-action:pan-y;overflow:hidden}
+.lw-host .tv-lightweight-charts,.lw-host canvas,.lw-host table{touch-action:pan-y}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:8px;color:var(--sec);font-size:12px}
 .swatch{display:inline-block;width:16px;height:3px;margin-right:6px;vertical-align:middle;border-radius:1px}
 .readout{font-family:var(--mono),var(--sans);font-size:12px;color:var(--sec);min-height:18px;margin-top:6px}
@@ -85,6 +87,7 @@ tr.live td{background:rgba(127,167,217,.12)}
 <p class="mute">交易成本按单边佣金万分之三，另加千分之一滑点，买入和卖出各计一次。夏普的无风险利率为年化 2%。主结果与看板同一套规则：每周最后一个交易日收盘出信号，5 分缓冲（新入选者必须比被替换的在位者高出 5 分以上），下一交易日开盘价成交。名单等权。基准是沪深300ETF（510300）买入持有，以及池内已有行情的 ETF 等权、在每月最后一个交易日收盘后于下一交易日开盘再平衡。</p>
 <p class="mute" id="btMeta">加载中…</p>
 <div id="btCharts" hidden>
+<p class="mute" id="chartNote" hidden></p>
 <h3>净值</h3>
 <div class="chart-box" id="navBox"></div>
 <h3>回撤</h3>
@@ -108,6 +111,7 @@ tr.live td{background:rgba(127,167,217,.12)}
 <div class="card mute" id="rule"></div>
 <footer>仅为个人研究工具，不构成投资建议</footer>
 </div>
+<script src="vendor/lightweight-charts/lightweight-charts.standalone.production.js" onerror="window.__lwChartsFailed=1"></script>
 <script>
 const COLS=[["rank","排名"],["name","名称"],["code","代码"],["score","得分"],["r5","5日%"],["r20","20日%"],["r60","60日%"],["ex20","20日超额%"],["ex60","60日超额%"],["above20","站上MA20"],["above60","站上MA60"],["mom_rank","20日动量排名"],["close","收盘"]];
 const PCT=new Set(["r5","r20","r60","ex20","ex60"]);let D,key="rank",asc=true;
@@ -135,7 +139,7 @@ function pctHtml(v){if(v==null||Number.isNaN(v))return "—";const x=Number(v)*1
 function pctPlain(v){if(v==null||Number.isNaN(Number(v)))return "—";return (Number(v)*100).toFixed(2)+"%"}
 function numHtml(v){if(v==null||Number.isNaN(v))return "—";const x=Number(v);const cls=x>0?"p":x<0?"n":"";return `<span class="${cls}">${x>0?"+":""}${x.toFixed(2)}</span>`}
 function winHtml(s){if(!s||s.weekly_win_rate==null)return "—";return (s.weekly_win_rate*100).toFixed(2)+"%（"+s.weekly_wins+"/"+s.weekly_count+"）"}
-function mountChart(box,dates,series,mode){
+function mountSvgChart(box,dates,series,mode){
 box.replaceChildren();
 const W=720,H=228,pl=54,pr=12,pt=16,pb=28,n=dates.length;
 const all=series.flatMap(s=>s.values);
@@ -160,6 +164,172 @@ series.forEach(s=>{const item=document.createElement("span");const mark=document
 svg.addEventListener("pointermove",ev=>{const rect=svg.getBoundingClientRect();const x=(ev.clientX-rect.left)/rect.width*W;let i=n<=1?0:Math.round((x-pl)/(W-pl-pr)*(n-1));i=Math.max(0,Math.min(n-1,i));const xx=X(i);rule.setAttribute("x1",xx);rule.setAttribute("x2",xx);rule.setAttribute("visibility","visible");readout.textContent=dates[i]+"  "+series.map(s=>s.name+" "+fmt(s.values[i])).join("   ")});
 svg.addEventListener("pointerleave",()=>{rule.setAttribute("visibility","hidden");readout.textContent="在图上移动查看当日数值"});
 box.append(svg,readout,legend)}
+function noteChartFallback(){
+const n=document.getElementById("chartNote");
+if(!n||!n.hidden)return;
+n.hidden=false;
+n.textContent="图表库不可用，已改用页面内置的曲线。";
+}
+function lwReady(){
+const L=window.LightweightCharts;
+return !window.__lwChartsFailed&&!!(L&&typeof L.createChart==="function"&&L.LineSeries&&L.ColorType&&L.CrosshairMode&&L.LineStyle);
+}
+function dayText(t){
+if(typeof t==="string")return t;
+if(t&&typeof t==="object"&&t.year!=null){
+const p=n=>String(n).padStart(2,"0");
+return t.year+"-"+p(t.month)+"-"+p(t.day);
+}
+return t==null?"":String(t);
+}
+function mountLwChart(box,dates,series,mode){
+const L=window.LightweightCharts;
+let chart=null,onResize=null,ro=null;
+try{
+if(!dates.length||!series.length||series.some(s=>!s.values||s.values.length!==dates.length))throw new Error("bad series");
+box.replaceChildren();
+const host=document.createElement("div");
+host.className="lw-host";
+host.setAttribute("role","img");
+host.setAttribute("aria-label",(mode==="dd"?"回撤 ":"净值 ")+series.map(s=>s.name).join("、"));
+const readout=document.createElement("div");
+readout.className="readout";
+readout.textContent="在图上移动查看当日数值";
+const legend=document.createElement("div");
+legend.className="legend";
+const fmt=mode==="dd"?v=>(v*100).toFixed(1)+"%":v=>Number(v).toFixed(3);
+const n=dates.length;
+series.forEach(s=>{
+const item=document.createElement("span");
+const mark=document.createElement("i");
+mark.className="swatch";
+mark.style.background=s.color;
+const last=s.values[n-1];
+item.append(mark,document.createTextNode(s.name+" "+(typeof last==="number"?fmt(last):"—")));
+legend.appendChild(item);
+});
+box.append(host,readout,legend);
+const rootStyle=getComputedStyle(document.documentElement);
+const pick=(name,fb)=>{const v=rootStyle.getPropertyValue(name).trim();return v||fb};
+const raised=pick("--raised","#212124");
+const mute=pick("--mute","#85858b");
+const line=pick("--line","rgba(237,237,237,.08)");
+const card=pick("--card","#18181a");
+const mono=pick("--mono","ui-monospace, monospace");
+const hasRO=typeof ResizeObserver==="function";
+const width=Math.max(1,Math.round(host.clientWidth||box.clientWidth||320));
+chart=L.createChart(host,{
+autoSize:hasRO,
+width,
+height:228,
+layout:{
+background:{type:L.ColorType.Solid,color:raised},
+textColor:mute,
+fontFamily:mono,
+fontSize:11,
+attributionLogo:true
+},
+grid:{vertLines:{visible:false},horzLines:{color:line}},
+crosshair:{
+mode:L.CrosshairMode.Magnet,
+vertLine:{color:"rgba(237,237,237,.45)",width:1,style:L.LineStyle.Solid,labelBackgroundColor:card},
+horzLine:{color:"rgba(237,237,237,.45)",width:1,style:L.LineStyle.Solid,labelBackgroundColor:card}
+},
+rightPriceScale:{
+borderColor:line,
+scaleMargins:mode==="dd"?{top:0.06,bottom:0.08}:{top:0.08,bottom:0.06}
+},
+leftPriceScale:{visible:false},
+timeScale:{
+borderColor:line,
+timeVisible:false,
+rightOffset:0,
+minBarSpacing:0.05,
+fixLeftEdge:true,
+fixRightEdge:true,
+lockVisibleTimeRangeOnResize:true
+},
+localization:{
+locale:"zh-CN",
+dateFormat:"yyyy-MM-dd",
+timeFormatter:dayText
+},
+handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},
+handleScale:{mouseWheel:true,pinch:true,axisPressedMouseMove:true,axisDoubleClickReset:true},
+kineticScroll:{touch:true,mouse:false}
+});
+const priceFormat=mode==="dd"
+?{type:"custom",minMove:0.0001,formatter:v=>(Number(v)*100).toFixed(1)+"%"}
+:{type:"price",precision:3,minMove:0.001};
+const apis=series.map(s=>{
+const opts={
+color:s.color,
+lineWidth:2,
+priceLineVisible:false,
+lastValueVisible:false,
+crosshairMarkerVisible:true,
+crosshairMarkerRadius:3,
+priceFormat,
+baseLineVisible:false
+};
+if(mode==="dd"){
+opts.autoscaleInfoProvider=original=>{
+const res=original();
+if(res&&res.priceRange){
+res.priceRange.maxValue=0;
+if(!(res.priceRange.minValue<0))res.priceRange.minValue=-0.01;
+}
+return res;
+};
+}
+const api=chart.addSeries(L.LineSeries,opts);
+const data=[];
+for(let i=0;i<n;i++){
+const v=s.values[i];
+if(typeof v==="number"&&Number.isFinite(v))data.push({time:dates[i],value:v});
+}
+if(!data.length)throw new Error("empty");
+api.setData(data);
+return api;
+});
+chart.subscribeCrosshairMove(param=>{
+if(!param||param.time==null||!param.point){
+readout.textContent="在图上移动查看当日数值";
+return;
+}
+const parts=apis.map((api,i)=>{
+const row=param.seriesData&&param.seriesData.get(api);
+const v=row&&typeof row.value==="number"?row.value:null;
+return series[i].name+" "+(v==null?"—":fmt(v));
+});
+readout.textContent=dayText(param.time)+"  "+parts.join("   ");
+});
+const fitAll=()=>{if(host.clientWidth>0)chart.timeScale().fitContent()};
+fitAll();
+requestAnimationFrame(fitAll);
+onResize=()=>{
+if(chart.autoSizeActive&&chart.autoSizeActive())return;
+const w=Math.round(host.clientWidth);
+if(w>0)chart.resize(w,228);
+};
+window.addEventListener("resize",onResize);
+if(hasRO){
+ro=new ResizeObserver(onResize);
+ro.observe(host);
+}
+return true;
+}catch(err){
+if(onResize)window.removeEventListener("resize",onResize);
+if(ro)ro.disconnect();
+try{if(chart)chart.remove()}catch(ignore){}
+return false;
+}
+}
+function mountChart(box,dates,series,mode){
+if(lwReady()&&mountLwChart(box,dates,series,mode))return;
+noteChartFallback();
+mountSvgChart(box,dates,series,mode);
+}
 function renderBacktest(d){
 const show=id=>{document.getElementById(id).hidden=false};
 ["btCharts","btMetricsWrap","btYearCard","btYearWrap","btSensCard","btSensWrap","btTurnCard","btTurnWrap"].forEach(show);
